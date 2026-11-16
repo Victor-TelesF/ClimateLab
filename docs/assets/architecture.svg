@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="880" viewBox="0 0 1200 880" role="img" aria-labelledby="title desc">
+<title id="title">Arquitetura do ClimateLab — fluxo atual e evolução planejada</title>
+<desc id="desc">Fluxo atual: os CSVs originais do INMET são selecionados por estação e ano com DataPaths.csv_path e explorados com pandas e ColumnName no notebook. Fluxo planejado: integrar reanálise Open-Meteo/ERA5, verificar qualidade e cobertura, alinhar horários e unidades, calcular indicadores e comparar fontes, salvando tabelas e gráficos. Bordas e setas contínuas indicam o disponível; pontilhadas indicam o planejado.</desc>
+<defs>
+<linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0e192b"/><stop offset="1" stop-color="#122b40"/></linearGradient>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#8ee6dc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="future-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#e8bd7d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect width="1200" height="880" rx="24" fill="url(#background)"/>
+<g font-family="Lato, Segoe UI, Arial, sans-serif">
+<text x="48" y="46" fill="#8ee6dc" font-size="12" letter-spacing="2.2">ARQUITETURA DO LABORATÓRIO</text>
+<text x="48" y="90" fill="#f2f7fc" font-size="34" font-weight="700" >Dos arquivos à análise</text>
+<text x="48" y="122" fill="#b8cce0" font-size="19" >Um fluxo simples para explorar dados e ampliar a investigação.</text>
+<path d="M838 54h30" stroke="#8ee6dc" stroke-width="2"/>
+<text x="879" y="60" fill="#b8cce0" font-size="15" >Disponível</text>
+<path d="M1000 54h30" stroke="#e8bd7d" stroke-width="2" stroke-dasharray="5 5"/>
+<text x="1041" y="60" fill="#b8cce0" font-size="15" >Planejado</text>
+<text x="48" y="163" fill="#8ee6dc" font-size="12" letter-spacing="1.8">01 / DISPONÍVEL HOJE</text>
+<path d="M372 260H438" fill="none" stroke="#8ee6dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M762 260H828" fill="none" stroke="#8ee6dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="48" y="180" width="324" height="160" rx="14" fill="#17273d" stroke="#8ee6dc" stroke-opacity=".65"/>
+<text x="72" y="210" fill="#8ee6dc" font-size="12" letter-spacing="1.7">ENTRADA</text>
+<text x="72" y="249" fill="#f2f7fc" font-size="23" font-weight="700" >Arquivos do INMET</text>
+<text x="72" y="281" fill="#b8cce0" font-size="18" >CSV original preservado</text>
+<path d="M72 298H348" stroke="#30475f"/>
+<text x="72" y="323" fill="#8ee6dc" font-size="15" >data/raw/inmet/2024/</text>
+<rect x="438" y="180" width="324" height="160" rx="14" fill="#17273d" stroke="#8ee6dc" stroke-opacity=".65"/>
+<text x="462" y="210" fill="#8ee6dc" font-size="12" letter-spacing="1.7">SELEÇÃO</text>
+<text x="462" y="249" fill="#f2f7fc" font-size="23" font-weight="700" >Escolha do arquivo</text>
+<text x="462" y="281" fill="#b8cce0" font-size="18" >Busca por estação e ano</text>
+<path d="M462 298H738" stroke="#30475f"/>
+<text x="462" y="323" fill="#8ee6dc" font-size="15" >DataPaths.csv_path()</text>
+<rect x="828" y="180" width="324" height="160" rx="14" fill="#17273d" stroke="#8ee6dc" stroke-opacity=".65"/>
+<text x="852" y="210" fill="#8ee6dc" font-size="12" letter-spacing="1.7">LEITURA</text>
+<text x="852" y="249" fill="#f2f7fc" font-size="23" font-weight="700" >Exploração no notebook</text>
+<text x="852" y="281" fill="#b8cce0" font-size="18" >pandas + ColumnName</text>
+<path d="M852 298H1128" stroke="#30475f"/>
+<text x="852" y="323" fill="#8ee6dc" font-size="15" >Ler e selecionar observações</text>
+<path d="M48 383H1152" stroke="#30475f"/>
+<text x="48" y="412" fill="#e8bd7d" font-size="12" letter-spacing="1.8">02 / PRÓXIMOS DESAFIOS</text>
+<path d="M990 340V432H600V460" fill="none" stroke="#e8bd7d" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 7" marker-end="url(#future-arrow)"/>
+<text x="1007" y="368" fill="#e8bd7d" font-size="13" >evolução do estudo</text>
+<path d="M372 540H438" fill="none" stroke="#e8bd7d" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 7" marker-end="url(#future-arrow)"/>
+<path d="M762 540H828" fill="none" stroke="#e8bd7d" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 7" marker-end="url(#future-arrow)"/>
+<path d="M990 620V696" fill="none" stroke="#e8bd7d" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 7" marker-end="url(#future-arrow)"/>
+<rect x="48" y="460" width="324" height="160" rx="14" fill="#17273d" stroke="#e8bd7d" stroke-opacity=".65" stroke-dasharray="5 5"/>
+<text x="72" y="490" fill="#e8bd7d" font-size="12" letter-spacing="1.7">FONTE PLANEJADA</text>
+<text x="72" y="529" fill="#f2f7fc" font-size="23" font-weight="700" >Open-Meteo / ERA5</text>
+<text x="72" y="561" fill="#b8cce0" font-size="18" >Reanálise para comparação</text>
+<path d="M72 578H348" stroke="#30475f"/>
+<text x="72" y="603" fill="#e8bd7d" font-size="15" >Coordenadas e período</text>
+<rect x="438" y="460" width="324" height="160" rx="14" fill="#17273d" stroke="#e8bd7d" stroke-opacity=".65" stroke-dasharray="5 5"/>
+<text x="462" y="490" fill="#e8bd7d" font-size="12" letter-spacing="1.7">PREPARAÇÃO PLANEJADA</text>
+<text x="462" y="529" fill="#f2f7fc" font-size="23" font-weight="700" >Validar e harmonizar</text>
+<text x="462" y="561" fill="#b8cce0" font-size="18" >Qualidade e cobertura</text>
+<path d="M462 578H738" stroke="#30475f"/>
+<text x="462" y="603" fill="#e8bd7d" font-size="15" >Horários e unidades compatíveis</text>
+<rect x="828" y="460" width="324" height="160" rx="14" fill="#17273d" stroke="#e8bd7d" stroke-opacity=".65" stroke-dasharray="5 5"/>
+<text x="852" y="490" fill="#e8bd7d" font-size="12" letter-spacing="1.7">ANÁLISE PLANEJADA</text>
+<text x="852" y="529" fill="#f2f7fc" font-size="23" font-weight="700" >Analisar e comparar</text>
+<text x="852" y="561" fill="#b8cce0" font-size="18" >Indicadores e episódios</text>
+<path d="M852 578H1128" stroke="#30475f"/>
+<text x="852" y="603" fill="#e8bd7d" font-size="15" >Temperatura, umidade e chuva</text>
+<rect x="828" y="696" width="324" height="132" rx="14" fill="#17273d" stroke="#e8bd7d" stroke-opacity=".65" stroke-dasharray="5 5"/>
+<text x="852" y="726" fill="#e8bd7d" font-size="12" letter-spacing="1.7">SAÍDAS PLANEJADAS</text>
+<text x="852" y="763" fill="#f2f7fc" font-size="23" font-weight="700" >Tabelas e gráficos</text>
+<text x="852" y="798" fill="#b8cce0" font-size="17" >data/processed/ · outputs/</text>
+<rect x="48" y="696" width="714" height="132" rx="14" fill="#122337"/>
+<text x="72" y="731" fill="#9dc9fb" font-size="21" font-weight="700" >Comparar exige contexto</text>
+<text x="72" y="765" fill="#b8cce0" font-size="18" >Uma estação observa um local; a reanálise estima em uma grade.</text>
+<text x="72" y="796" fill="#b8cce0" font-size="18" >As duas fontes mantêm sua identidade ao longo da análise.</text>
+</g>
+</svg>

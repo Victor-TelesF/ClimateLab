@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<title id="title">Trilha de estudo do ClimateLab — 30 desafios em cinco etapas</title>
+<desc id="desc">Roteiro de estudo: etapa 1, desafios 01 a 06, dados confiáveis; etapa 2, 07 a 12, integração de fontes; etapa 3, 13 a 20, padrões e probabilidade; etapa 4, 21 a 24, modelos e limites; etapa 5, 25 a 30, engine e escala. O trabalho atual está no início da primeira etapa; o roteiro não indica etapas concluídas.</desc>
+<defs>
+<linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0e192b"/><stop offset="1" stop-color="#122b40"/></linearGradient>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#8ee6dc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="future-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#e8bd7d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect width="1200" height="420" rx="24" fill="url(#background)"/>
+<g font-family="Lato, Segoe UI, Arial, sans-serif">
+<text x="48" y="46" fill="#8ee6dc" font-size="12" letter-spacing="2.2">ROTEIRO DE ESTUDO</text>
+<text x="48" y="89" fill="#f2f7fc" font-size="34" font-weight="700" >Uma trilha, cinco etapas</text>
+<text x="48" y="121" fill="#b8cce0" font-size="19" >30 desafios para passar da leitura de arquivos a análises reproduzíveis.</text>
+<rect x="48" y="163" width="200" height="172" rx="14" fill="#17273d" stroke="#8ee6dc"/>
+<text x="67" y="195" fill="#8ee6dc" font-size="18" font-weight="700" >01–06</text>
+<text x="67" y="239" fill="#f2f7fc" font-size="22" font-weight="700" >Dados</text>
+<text x="67" y="267" fill="#f2f7fc" font-size="22" font-weight="700" >confiáveis</text>
+<text x="67" y="311" fill="#b8cce0" font-size="15" >CSV e cobertura</text>
+<path d="M252 249H270" fill="none" stroke="#8ee6dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="274" y="163" width="200" height="172" rx="14" fill="#17273d" stroke="#30475f"/>
+<text x="293" y="195" fill="#9dc9fb" font-size="18" font-weight="700" >07–12</text>
+<text x="293" y="239" fill="#f2f7fc" font-size="22" font-weight="700" >Integração</text>
+<text x="293" y="267" fill="#f2f7fc" font-size="22" font-weight="700" >de fontes</text>
+<text x="293" y="311" fill="#b8cce0" font-size="15" >API e comparação</text>
+<path d="M478 249H496" fill="none" stroke="#8ee6dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="500" y="163" width="200" height="172" rx="14" fill="#17273d" stroke="#30475f"/>
+<text x="519" y="195" fill="#9dc9fb" font-size="18" font-weight="700" >13–20</text>
+<text x="519" y="239" fill="#f2f7fc" font-size="22" font-weight="700" >Padrões e</text>
+<text x="519" y="267" fill="#f2f7fc" font-size="22" font-weight="700" >probabilidade</text>
+<text x="519" y="311" fill="#b8cce0" font-size="15" >Eventos e simulação</text>
+<path d="M704 249H722" fill="none" stroke="#8ee6dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="726" y="163" width="200" height="172" rx="14" fill="#17273d" stroke="#30475f"/>
+<text x="745" y="195" fill="#9dc9fb" font-size="18" font-weight="700" >21–24</text>
+<text x="745" y="239" fill="#f2f7fc" font-size="22" font-weight="700" >Modelos e</text>
+<text x="745" y="267" fill="#f2f7fc" font-size="22" font-weight="700" >limites</text>
+<text x="745" y="311" fill="#b8cce0" font-size="15" >Funções e filtros</text>
+<path d="M930 249H948" fill="none" stroke="#8ee6dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="952" y="163" width="200" height="172" rx="14" fill="#17273d" stroke="#30475f"/>
+<text x="971" y="195" fill="#9dc9fb" font-size="18" font-weight="700" >25–30</text>
+<text x="971" y="239" fill="#f2f7fc" font-size="22" font-weight="700" >Engine e</text>
+<text x="971" y="267" fill="#f2f7fc" font-size="22" font-weight="700" >escala</text>
+<text x="971" y="311" fill="#b8cce0" font-size="15" >Síntese e desempenho</text>
+<circle cx="54" cy="379" r="5" fill="#8ee6dc"/>
+<text x="69" y="385" fill="#b8cce0" font-size="18" >Início da etapa 1 · As próximas etapas serão desenvolvidas ao longo do estudo.</text>
+</g>
+</svg>
