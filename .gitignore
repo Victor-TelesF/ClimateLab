@@ -1,0 +1,32 @@
+# Ambiente Python e artefatos de instalação
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.uv-cache/
+
+# Dados originais, intermediários e resultados ficam locais
+data/**
+!data/**/
+!data/**/.gitkeep
+outputs/**
+!outputs/**/
+!outputs/**/.gitkeep
+
+# Jupyter e caches
+.ipynb_checkpoints/
+.jupyter/
+.ipython/
+.cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.log
+
+# Configurações privadas e sistema
+.env
+.env.*
+.DS_Store
+Thumbs.db
