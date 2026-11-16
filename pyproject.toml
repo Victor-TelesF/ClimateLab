@@ -1,5 +1,5 @@
 [project]
-name = "inteligencia-ambiental"
+name = "climatelab"
 version = "0.1.0"
 description = "Laboratório de estudo de Python, pandas e matemática com dados meteorológicos."
 readme = "README.md"
