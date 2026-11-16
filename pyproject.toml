@@ -1,0 +1,20 @@
+[project]
+name = "inteligencia-ambiental"
+version = "0.1.0"
+description = "Laboratório de estudo de Python, pandas e matemática com dados meteorológicos."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "httpx>=0.28.1",
+    "ipykernel>=7.4.0",
+    "jupyterlab>=4.6.6",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "seaborn>=0.13.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.0,<0.13.0"]
+build-backend = "uv_build"
