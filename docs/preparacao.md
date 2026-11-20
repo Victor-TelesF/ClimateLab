@@ -27,8 +27,7 @@ uv run --locked python -m ipykernel install --sys-prefix --name climatelab --dis
 ```
 
 O ambiente de referência usa Ubuntu 26.04 LTS no WSL2, x86_64, Python 3.14.4
-e uv 0.12.3. A seleção do kernel e a apresentação dos notebooks na interface
-do VS Code não foram verificadas nesta revisão.
+e uv 0.12.3.
 
 ## Aquisição dos arquivos
 
@@ -88,83 +87,46 @@ nona linha, Latin-1, separador `;` e vírgula decimal nas medições. Esses
 parâmetros devem ser conferidos antes de incorporar arquivos de outro formato.
 As unidades e convenções temporais estão em [fontes.md](fontes.md).
 
-O exemplo do README lê um arquivo usando a interface atual. O notebook de
-inventário exibe uma prévia de A620, e o de teste contém uma tentativa de
-navegação entre arquivos via `input()`.
-[Exemplo de leitura](../README.md#execução-local),
-[inventário](../notebooks/01-inventario.ipynb) e [teste](../notebooks/teste.ipynb).
+### Primeira leitura
+
+Com os CSVs em `data/raw/inmet/2024/`, rode o exemplo a partir da raiz em
+`uv run --locked python`. Ele lê o primeiro arquivo na ordem de caminhos.
+
+```python
+from climatelab.etl.extract import ExtractInmet
+
+extractor = ExtractInmet(year=2024)
+identifier, csv_path = next(extractor.inmet_paths())
+metadata = extractor.inmet_metadata(csv_path)
+observations = extractor.inmet_dataframe(csv_path)
+print(identifier, metadata.shape, observations.shape)
+```
+
+Em uma pasta sem CSVs, o `next()` do exemplo lança `StopIteration`. Para
+selecionar uma estação, confira os identificadores de `inmet_paths()`, que
+ainda podem se repetir. O notebook de inventário usa A620.
+[Notebook de inventário](../notebooks/01-inventario.ipynb)
 
 ## Verificações de integridade e execução
 
-Para conferir o ambiente e executar a suíte:
+Confira o ambiente, a integridade do ZIP e o hash da cópia baixada.
 
 ```bash
 uv lock --check
 uv pip check
-uv run --locked pytest
+uv run --locked python -m zipfile -t data/raw/inmet/2024.zip
+sha256sum data/raw/inmet/2024.zip
 ```
 
-As verificações locais de 19/11/2026 confirmaram os seguintes resultados.
-
-- Compatibilidade do lockfile com o projeto e das dependências instaladas.
-- ZIP com 102.772.199 bytes e SHA-256 igual ao registro da aquisição:
-
-  ```text
-  0a7f89de57427f79b6f82943b2f7f2e932202d9253e34bf25629ed088d108ae7
-  ```
-
-- Correspondência de nomes e tamanhos dos 565 CSVs com o diretório do ZIP.
-  O CSV A001 de Brasília também coincide, byte a byte, com sua entrada no pacote.
-- Execução do exemplo de leitura com A001: metadados com formato `(8, 2)` e
-  medições com `(8784, 20)`. Essa contagem não comprova cobertura válida por variável.
-- A leitura em lote retornou 565 tabelas e deixou `registry_erros` vazio
-  nesse acervo local.
-- Validade estrutural dos dois notebooks pelo `nbformat`. A execução de
-  `01-inventario.ipynb` com `nbclient` exibiu duas tabelas de A620.
-  Em `teste.ipynb`, entradas simuladas `0` e `1` encerraram a célula após
-  o primeiro arquivo.
-- A suíte executou 60 cenários, com falhas na preservação de texto nos
-  metadados, na validação e no diagnóstico do lote.
-  [Resultado detalhado da suíte](../tests/README.md#estado-da-suíte)
-
-O checksum identifica a cópia adquirida. A comparação com o ZIP confere os
-arquivos extraídos. A leitura em lote comprova que o pandas carregou as tabelas
-neste ambiente. A auditoria da estrutura e da qualidade meteorológica das
-565 séries continua pendente.
-
-## Limitações conhecidas
-
-O extrator ainda não valida integralmente nomes, metadados, colunas, datas,
-horários ou medições. Campos textuais como `NA` e `NULL` podem virar ausências,
-e a coluna vazia final permanece na tabela. Não há normalização temporal,
-tratamento explícito de sentinelas, cálculo de cobertura ou exportação de dados
-processados. Essas etapas estão no [planejamento](desafios.md).
-
-O cliente Open-Meteo e a verificação da conectividade do endpoint continuam
-pendentes. Os testes unitários usam CSVs artificiais. A execução dos notebooks
-foi feita em kernel local, sem conferência da interface do VS Code.
-
-## Histórico técnico
-
-Na preparação de 15/11/2026, a versão inicial de `01-inventario.ipynb` foi
-validada com `nbformat` e executada com `nbclient` a partir da raiz.
-
-Em 15/11/2026, o download do ZIP pelo terminal falhou com encerramento da conexão
-pelo destino, tanto no ambiente restrito quanto fora dele:
+O ZIP de referência tem 102.772.199 bytes. O SHA-256 registrado para essa
+cópia é o seguinte.
 
 ```text
-ConnectionResetError: [Errno 104] Connection reset by peer
-curl: (56) Recv failure: Connection reset by peer
-http_code=000
-size_download=0
+0a7f89de57427f79b6f82943b2f7f2e932202d9253e34bf25629ed088d108ae7
 ```
 
-O pacote foi adquirido manualmente e organizado no mesmo dia. O registro local
-`data/raw/inmet/aquisicao-2024.json` preserva as tentativas e as verificações:
-nomes e tamanhos de todos os CSVs, comparação integral de A001 com o ZIP e
-preservação de dispositivo, inode, tamanho e data de modificação na movimentação.
+Para executar a suíte de extração, use `uv run --locked pytest`.
+[Contrato e execução dos testes](../tests/README.md)
 
-Na aquisição inicial, a inspeção limitou-se às dez primeiras linhas de A001 em
-bytes. O campo `csv_read_scope` do JSON descreve esse momento, não as leituras
-posteriores pelo extrator e pelos notebooks. A verificação atual da cópia está
-na seção de integridade acima.
+Os resultados da verificação do acervo, da execução dos notebooks e dos
+testes estão no [histórico de desenvolvimento](desenvolvimento.md#histórico-de-desenvolvimento).
