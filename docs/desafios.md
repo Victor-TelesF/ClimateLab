@@ -1,34 +1,34 @@
-# Inteligência Ambiental — laboratório de clima
+# Planejamento das investigações
 
-30 desafios para praticar Python, consumo de API, CSV, pandas, gráficos, probabilidade, estatística e limites. Você implementa as soluções e as regras da engine; pode delegar os gráficos a um agente a partir das tabelas que produzir.
+Os 30 desafios do ClimateLab organizam perguntas ambientais, requisitos de processamento e critérios de análise. São atividades planejadas de investigação e desenvolvimento, sem pressupor funcionalidades concluídas ou resultados obtidos. O [README](../README.md#estado-da-implementação) descreve o estágio atual.
 
-Este é um recorte de estudo proposto para o tema Inteligência Ambiental: análise meteorológica e comparação entre fontes. Não pressupõe detalhes de outro projeto com esse nome. O caderno substitui o tema de filmes para esta trilha e não contém soluções ou resultados calculados.
+O desenvolvimento será incremental, começando pela leitura e pelo diagnóstico de uma série e avançando para integração de fontes, indicadores e análises reutilizáveis. O documento mantém a numeração dos desafios como referência dos requisitos do [roadmap](../README.md#roadmap).
 
 ## A investigação
 
 **Como caracterizar calor, chuva e períodos secos em uma região, medir a qualidade dos dados e comparar o que uma estação registrou com o que uma reanálise estima para o local?**
 
-A engine será um programa Python que recebe região/estação, período e parâmetros, integra fontes, calcula indicadores e devolve tabelas e um relatório de ocorrências. O desenvolvimento começa com funções pequenas. Não exige API própria, banco de dados, aplicação web ou modelos de aprendizado de máquina.
+A engine planejada será um programa Python que recebe estação, período e parâmetros, integra fontes, calcula indicadores e devolve tabelas e um relatório de ocorrências. A implementação começa com funções pequenas; API própria, banco de dados, aplicação web e aprendizado de máquina não são requisitos desse escopo.
 
-## Fontes verificadas
+## Fontes previstas na investigação
 
 ### CSV: estações automáticas do INMET
 
-O [portal de dados históricos](https://portal.inmet.gov.br/dadoshistoricos) fornece pacotes anuais de estações automáticas. O [BDMEP](https://bdmep.inmet.gov.br/) também apresenta esse caminho para baixar os pacotes anuais e acessar dados em CSV. Consulte o [catálogo de estações](https://portal.inmet.gov.br/paginas/catalogoaut) para identificação e localização.
+O [portal de dados históricos](https://portal.inmet.gov.br/dadoshistoricos) fornece pacotes anuais de estações automáticas. O [BDMEP](https://bdmep.inmet.gov.br/) oferece acesso a dados meteorológicos, e o [catálogo de estações](https://portal.inmet.gov.br/paginas/catalogoaut) auxilia na identificação e localização.
 
-Comece com arquivos de um ano completo, como 2024. Inspecione o conteúdo real antes de definir leitura, nomes de colunas, codificação, unidades, marcadores de ausência e interpretação temporal. Preserve cabeçalhos e metadados originais.
+A primeira etapa usa arquivos de 2024. A inspeção do conteúdo deve preceder as decisões sobre leitura, nomes de colunas, codificação, unidades, marcadores de ausência e interpretação temporal. Cabeçalhos e metadados originais devem ser preservados.
 
 ### API: histórico meteorológico do Open-Meteo
 
-A [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) permite consultar séries por coordenadas e período. Para este projeto, fixe explicitamente um modelo como ERA5 e guarde os parâmetros da consulta. Escolha temperatura, umidade relativa e precipitação, confirmando os nomes e unidades na documentação atual.
+A [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) permite consultar séries por coordenadas e período. A integração planejada fixa explicitamente o modelo ERA5 e registra os parâmetros da consulta, com temperatura, umidade relativa e precipitação. Nomes e unidades devem ser confirmados na documentação vigente.
 
-O histórico é uma **reanálise**, que combina observações e modelagem em uma grade espacial. Ele não equivale à leitura da estação que você selecionou. Uma divergência não demonstra, isoladamente, erro de sensor ou de API.
+O produto previsto é uma reanálise, que combina observações e modelagem em uma grade espacial. Ele não equivale à leitura da estação selecionada. Uma divergência não demonstra, isoladamente, erro de sensor ou de API.
 
-Use a modalidade não comercial adequada ao estudo, respeite os [limites de uso](https://open-meteo.com/en/terms) e registre atribuição às fontes. Particione consultas maiores e preserve respostas para reutilizá-las.
+A coleta deverá respeitar a modalidade não comercial e os [limites de uso](https://open-meteo.com/en/terms), com atribuição às fontes. Consultas maiores deverão ser particionadas, e respostas preservadas para reutilização.
 
 ## Recorte e volume
 
-O recorte piloto será **uma estação, um ano e as três variáveis principais**. Escolha uma estação cuja localização e cobertura permitam trabalhar; registre essa escolha. Depois, amplie para outras estações e anos. Uma cidade é um ponto de partida para localizar estações, não uma chave automática de associação.
+O recorte piloto será uma estação, um ano e as três variáveis principais. A seleção da estação deverá justificar localização e cobertura. A ampliação para outras estações e anos depende da avaliação desse recorte. Uma cidade é um ponto de partida para localizar estações, não uma chave automática de associação.
 
 Para planejar a escala: 100 estações × 5 anos × 8.760 horários equivalem a aproximadamente **4,38 milhões de registros estação–hora**, antes de considerar anos bissextos, lacunas e alterações de operação. Esse número é uma estimativa de planejamento, não uma contagem verificada dos arquivos.
 
@@ -36,48 +36,50 @@ O volume maior pode vir dos CSVs. Não há necessidade de fazer milhões de requ
 
 ## Regras para as análises
 
-- Guarde fonte, estação ou coordenadas, variável, unidade, tempo e parâmetros de aquisição.
-- Harmonize o tempo em UTC antes de associar fontes. Converta para o fuso local ao responder perguntas sobre o dia ou horário local.
-- Para precipitação, confira o intervalo representado por cada marcação temporal, além do fuso. No Open-Meteo, a precipitação horária corresponde ao acumulado da hora precedente, conforme a documentação.
-- Diferencie observação ausente de precipitação zero. Não preencha lacunas com zero automaticamente.
-- Compare variáveis com unidades, definições e intervalos compatíveis. Comece por temperatura; só inclua precipitação após resolver a semântica temporal.
-- Declare cobertura mínima antes de calcular indicadores diários. Mostre quantos dias ou horários foram excluídos e por quê.
-- Nos desafios de probabilidade, defina a unidade sorteada e o conjunto de registros elegíveis.
+- Registrar fonte, estação ou coordenadas, variável, unidade, tempo e parâmetros de aquisição.
+- Harmonizar o tempo em UTC antes de associar fontes. Converter para o fuso local ao responder perguntas sobre o dia ou horário local.
+- Conferir o intervalo representado por cada marcação temporal de precipitação, além do fuso. No Open-Meteo, a precipitação horária corresponde ao acumulado da hora precedente, conforme a documentação.
+- Diferenciar observação ausente de precipitação zero, sem preencher lacunas com zero automaticamente.
+- Comparar variáveis com unidades, definições e intervalos compatíveis. O pareamento começa por temperatura; precipitação depende de resolver a semântica temporal.
+- Declarar cobertura mínima antes do cálculo de indicadores diários, informando quantos dias ou horários foram excluídos e por quê.
+- Definir a unidade sorteada e o conjunto de registros elegíveis nas análises de probabilidade.
 - Limiares de calor, chuva e secura escolhidos neste caderno são parâmetros didáticos. Eles não constituem alertas oficiais nem critérios de risco à saúde ou de desastre.
 
-## Entrega de cada desafio
+## Registro dos métodos e resultados
 
-Guarde o enunciado, sua tentativa em Python/pandas, uma tabela de resposta, o gráfico quando solicitado e uma interpretação curta. Nos exercícios matemáticos, acrescente seu raciocínio e as condições do modelo.
+Cada análise deverá apresentar a pergunta, os dados utilizados, o método aplicado, o código reproduzível, os resultados e as limitações identificadas. Tabelas e gráficos deverão sustentar a interpretação; modelos matemáticos deverão incluir o raciocínio e as hipóteses adotadas.
 
-Há tarefas obrigatórias de Python puro nos desafios **02, 03, 07, 08, 15, 16, 20, 22, 23, 24 e 26**. Implemente o núcleo indicado usando a biblioteca padrão. Use pandas para preparar dados e organizar resultados; reserve os laços sobre estruturas pequenas para os exercícios e avalie desempenho antes de aplicá-los à base inteira.
+Os requisitos de implementação estão indicados em cada atividade. Os núcleos de extração de metadados, validação por registro, chaves de consulta, sequências, simulação e modelos explícitos utilizam a biblioteca padrão. A consulta HTTP pode usar `httpx`; pandas organiza a preparação e as tabelas de resultados. A coordenação da engine reutilizará essas funções. Laços sobre estruturas pequenas devem ter o desempenho avaliado antes da aplicação à base inteira.
 
 ## Etapa 1 — transformar CSV em dados confiáveis
 
 ### 01. O que cada arquivo representa?
 
-Inspecione um CSV e identifique estação, coordenadas, período, frequência, variáveis e unidades. Diferencie metadados do arquivo de linhas de observação. Investigue se a estação mudou de identificação ou localização no período escolhido.
+A inspeção de um CSV deverá identificar estação, coordenadas, período, frequência, variáveis e unidades, distinguindo metadados de linhas de observação. Mudanças de identificação ou localização da estação no período escolhido deverão ser investigadas.
 
-**Entrega:** inventário de um arquivo e dicionário das três variáveis principais. Registre dúvidas que precisem de documentação adicional.
+**Entrega:** inventário de um arquivo, dicionário das três variáveis principais e dúvidas que exijam documentação adicional.
 
 ### 02. Como ler arquivos com cabeçalhos e formatos diferentes?
 
-Descubra a codificação, o separador, a representação decimal, a posição do cabeçalho e os marcadores de ausência no arquivo selecionado. Defina uma estrutura de saída consistente.
+A leitura deverá considerar codificação, separador, representação decimal, posição do cabeçalho e marcadores de ausência do arquivo selecionado, com uma estrutura de saída consistente.
 
-**Python puro:** implemente uma função para extrair os metadados do cabeçalho, preservando os valores originais. Defina comportamento para campos ausentes e linhas inesperadas.
+**Python puro:** função de extração dos metadados do cabeçalho, preservando valores originais e definindo o comportamento para campos ausentes e linhas inesperadas.
 
-**Entrega:** metadados estruturados e tabela carregada com pandas. Não suponha que todos os arquivos históricos possuem exatamente o mesmo formato.
+**Entrega:** metadados estruturados e tabela carregada com pandas. A compatibilidade de formato deverá ser conferida a cada conjunto histórico incorporado.
+
+A leitura de 2024 já disponibiliza metadados e observações em tabelas separadas. A validação do formato e a preservação integral dos textos dos metadados seguem como requisitos. [Formato observado no INMET](fontes.md#formato-e-leitura), [contrato dos testes](../tests/README.md#formato-coberto).
 
 ### 03. Quais observações precisam de investigação?
 
-Procure datas inválidas, horários repetidos, valores ausentes e valores incompatíveis com as unidades e definições documentadas. Separe um problema de formato de uma observação fisicamente suspeita.
+O diagnóstico deverá identificar datas inválidas, horários repetidos, valores ausentes e valores incompatíveis com as unidades e definições documentadas, separando problemas de formato de observações fisicamente suspeitas.
 
-**Python puro:** escreva uma função que recebe um registro e devolve os problemas identificados, sem modificá-lo. Confira-a com exemplos pequenos, incluindo ausência, zero e valor inválido.
+**Python puro:** função que recebe um registro e devolve os problemas identificados, sem modificá-lo, conferida com exemplos pequenos de ausência, zero e valor inválido.
 
-**Entrega:** tabela de verificações, quantidades e decisões de tratamento. Evite excluir observações apenas por serem extremas.
+**Entrega:** tabela de verificações, quantidades e decisões de tratamento. Valores extremos, por si só, não justificam excluir observações.
 
 ### 04. Quanto do período está realmente coberto?
 
-Construa a grade de horários esperados no intervalo de operação considerado e compare com os registros disponíveis. Calcule cobertura por variável e por mês, preservando a identificação da estação.
+A cobertura será calculada por variável e por mês a partir da comparação entre a grade de horários esperados no intervalo de operação considerado e os registros disponíveis, preservando a identificação da estação.
 
 **Gráfico:** mapa de disponibilidade ou barras de cobertura mensal.
 
@@ -85,7 +87,7 @@ Construa a grade de horários esperados no intervalo de operação considerado e
 
 ### 05. Qual é o retrato estatístico da estação?
 
-Calcule quantidade válida, média, mediana, quartis e desvio padrão por variável. Observe a distribuição de precipitação incluindo zeros e, separadamente, apenas horários com chuva segundo um limiar declarado.
+A descrição estatística deverá incluir quantidade válida, média, mediana, quartis e desvio padrão por variável. A distribuição de precipitação será examinada incluindo zeros e, separadamente, apenas horários com chuva segundo um limiar declarado.
 
 **Gráfico:** distribuições com unidades e tamanho de cada conjunto.
 
@@ -93,7 +95,7 @@ Calcule quantidade válida, média, mediana, quartis e desvio padrão por variá
 
 ### 06. Como transformar horários em dias?
 
-Produza indicadores diários: temperatura média, amplitude entre amostras horárias válidas, umidade média e precipitação acumulada. Defina fuso, convenção dos intervalos e cobertura mínima por indicador.
+Os indicadores diários serão temperatura média, amplitude entre amostras horárias válidas, umidade média e precipitação acumulada, com fuso, convenção dos intervalos e cobertura mínima definidos por indicador.
 
 **Gráfico:** série diária com indicação de dias sem cobertura suficiente.
 
@@ -103,43 +105,43 @@ Produza indicadores diários: temperatura média, amplitude entre amostras horá
 
 ### 07. Como fazer uma consulta HTTP confiável?
 
-Consulte um período pequeno do histórico do Open-Meteo nas coordenadas da estação. Confirme parâmetros e modelo na documentação.
+A primeira consulta ao histórico do Open-Meteo deverá abranger um período pequeno nas coordenadas da estação, com parâmetros e modelo confirmados na documentação.
 
-**Python:** implemente uma função com uma biblioteca HTTP, como `httpx`, que valide parâmetros, estabeleça timeout, verifique status e diferencie falha de rede, erro HTTP e resposta sem a estrutura esperada. Não use pandas para executar a requisição.
+**Python:** função com uma biblioteca HTTP, como `httpx`, que valide parâmetros, estabeleça timeout, verifique status e diferencie falha de rede, erro HTTP e resposta sem a estrutura esperada. A requisição fica separada da preparação de tabelas com pandas.
 
-**Entrega:** resposta bruta preservada e registro da consulta. Não comece baixando todos os anos e estações.
+**Entrega:** resposta bruta preservada e registro da consulta, restrita ao recorte inicial antes de ampliar anos e estações.
 
 ### 08. Como evitar downloads e tentativas desnecessários?
 
-Acrescente persistência das respostas e reutilização de consultas já realizadas.
+O cliente deverá persistir as respostas e reutilizar consultas já realizadas.
 
-**Python puro:** construa uma chave reproduzível a partir dos parâmetros relevantes e uma política de tentativas limitada para falhas transitórias. Considere `Retry-After` quando disponível e não repita indefinidamente erros de parâmetros.
+**Python puro:** chave reproduzível a partir dos parâmetros relevantes e política de tentativas limitada para falhas transitórias, considerando `Retry-After` quando disponível. Erros de parâmetros não devem gerar tentativas indefinidas.
 
-**Entrega:** demonstração de reutilização local e tratamento de falha usando exemplos controlados. Não provoque um bloqueio real na API para testar o comportamento.
+**Entrega:** demonstração de reutilização local e tratamento de falha com exemplos controlados, sem provocar bloqueio real na API.
 
 ### 09. Como transformar o JSON em tabela?
 
-Converta a resposta horária em uma tabela com identificador do local consultado, modelo, tempo e variáveis. Valide o alinhamento dos vetores, os campos de unidades, valores ausentes e a unicidade da chave temporal por local/modelo.
+A resposta horária será convertida em tabela com identificador do local consultado, modelo, tempo e variáveis. A validação deverá conferir alinhamento dos vetores, campos de unidades, valores ausentes e unicidade da chave temporal por local/modelo.
 
-**Entrega:** tabela normalizada e conferência de consistência com a resposta original. Não descarte metadados que expliquem coordenadas retornadas ou unidades.
+**Entrega:** tabela normalizada e conferência de consistência com a resposta original, preservando metadados de coordenadas retornadas e unidades.
 
 ### 10. Quais locais podem ser comparados?
 
-Relacione a estação, suas coordenadas e o ponto consultado na API. Registre coordenadas retornadas e informações espaciais disponíveis. Discuta altitude, distância e resolução da grade como possíveis explicações para diferenças.
+A correspondência entre a estação e o ponto consultado deverá registrar coordenadas da estação, coordenadas solicitadas e retornadas e informações espaciais disponíveis. Altitude, distância e resolução da grade serão consideradas como possíveis explicações para diferenças.
 
-**Entrega:** tabela de correspondências e justificativa da comparação. Não associe fontes apenas pelo nome da cidade, nem suponha que vários pontos consultados correspondem a células independentes.
+**Entrega:** tabela de correspondências e justificativa da comparação. O nome da cidade não basta para associar fontes; vários pontos consultados não correspondem necessariamente a células independentes.
 
 ### 11. Os horários significam a mesma coisa?
 
-Padronize fuso e referência temporal das duas fontes. Associe primeiro as temperaturas de um período curto e inspecione manualmente alguns pares. Depois, examine os intervalos de precipitação.
+O pareamento exige padronizar fuso e referência temporal das duas fontes. A associação começa por temperaturas de um período curto, com inspeção manual de alguns pares, antes de examinar os intervalos de precipitação.
 
 **Entrega:** tabela de pares comparáveis e auditoria dos horários que ficaram sem correspondência.
 
-**Critério:** a associação não pode multiplicar linhas inesperadamente. Registre duplicatas e confirme o significado dos horários antes de deslocar uma série.
+**Critério:** a associação não pode multiplicar linhas inesperadamente. Duplicatas devem ser registradas, e o significado dos horários confirmado antes de qualquer deslocamento da série.
 
 ### 12. Como quantificar a divergência entre as fontes?
 
-Nos pares válidos de temperatura, calcule diferença média com sinal definido, erro absoluto médio e raiz do erro quadrático médio. Explicite qual fonte é a referência operacional da comparação.
+Os pares válidos de temperatura serão usados para calcular diferença média com sinal definido, erro absoluto médio e raiz do erro quadrático médio, com referência operacional da comparação explicitamente identificada.
 
 **Gráfico:** dispersão com a linha de igualdade e série das diferenças.
 
@@ -151,7 +153,7 @@ Nos pares válidos de temperatura, calcule diferença média com sinal definido,
 
 ### 13. Quais padrões se repetem ao longo do dia e do ano?
 
-Compare temperatura, umidade e chuva por hora local e mês. Em um único ano, descreva o padrão observado nesse ano; para uma referência sazonal mais estável, amplie para vários anos com qualidade conhecida.
+A análise comparará temperatura, umidade e chuva por hora local e mês. Um único ano permite descrever o padrão daquele período; uma referência sazonal mais estável requer vários anos com qualidade conhecida.
 
 **Gráfico:** perfil por hora ou mapa mês × hora, acompanhado da cobertura.
 
@@ -159,7 +161,7 @@ Compare temperatura, umidade e chuva por hora local e mês. Em um único ano, de
 
 ### 14. Uma observação extrema é um erro?
 
-Investigue extremos por estação e época do ano. Compare limites físicos/documentados, quantis empíricos e inspeção da vizinhança temporal.
+A investigação de extremos deverá considerar estação e época do ano, combinando limites físicos/documentados, quantis empíricos e inspeção da vizinhança temporal.
 
 **Entrega:** lista de ocorrências com evidências e classificação como problema confirmado, observação plausível ou caso inconclusivo.
 
@@ -167,17 +169,17 @@ Investigue extremos por estação e época do ano. Compare limites físicos/docu
 
 ### 15. Qual foi a maior sequência de dias secos?
 
-Escolha um limiar de precipitação diária para definir dia seco. Use apenas dias elegíveis pela regra de cobertura.
+A definição de dia seco depende de um limiar de precipitação diária declarado. Apenas dias elegíveis pela regra de cobertura entram no cálculo.
 
-**Python puro:** implemente uma função que receba datas e estados diários e encontre sequências, com início, fim e duração. Lacunas devem interromper a sequência ou produzir uma condição indeterminada explicitamente descrita; não contam automaticamente como dias secos.
+**Python puro:** função que recebe datas e estados diários e encontra sequências, com início, fim e duração. Lacunas devem interromper a sequência ou produzir uma condição indeterminada explicitamente descrita; não contam automaticamente como dias secos.
 
 **Entrega:** maiores sequências por estação e conferência em exemplos pequenos, incluindo virada de mês e dias ausentes.
 
 ### 16. Como agrupar horas quentes em episódios?
 
-Defina um limiar didático de temperatura e agrupe horários consecutivos que o ultrapassam.
+Os episódios serão definidos pelo agrupamento de horários consecutivos acima de um limiar didático de temperatura declarado.
 
-**Python puro:** implemente a identificação dos episódios, preservando estação, início, fim, quantidade de amostras e convenção de duração. Defina o tratamento da igualdade com o limiar e de lacunas.
+**Python puro:** identificação dos episódios, preservando estação, início, fim, quantidade de amostras e convenção de duração, com tratamento explícito da igualdade com o limiar e de lacunas.
 
 **Gráfico:** temperatura com os episódios marcados.
 
@@ -185,7 +187,7 @@ Defina um limiar didático de temperatura e agrupe horários consecutivos que o 
 
 ### 17. Qual é a probabilidade empírica de um dia chuvoso?
 
-Defina o experimento: sortear uniformemente um dia elegível de uma estação e período. Estime a probabilidade de precipitação diária acima de um limiar positivo escolhido por você. Compare meses com denominadores informados.
+O experimento consiste em sortear uniformemente um dia elegível de uma estação e período. A probabilidade empírica de precipitação diária acima de um limiar positivo declarado será comparada entre meses, com denominadores informados.
 
 **Entrega:** numeradores, denominadores e probabilidades por mês.
 
@@ -193,7 +195,7 @@ Defina o experimento: sortear uniformemente um dia elegível de uma estação e 
 
 ### 18. A umidade altera a frequência observada de chuva?
 
-Agora sorteie um registro horário com umidade e precipitação válidas. Defina os eventos “umidade alta” e “houve precipitação no intervalo associado ao horário”, com limiares declarados. Calcule probabilidades conjuntas e condicionais.
+O experimento passa a sortear um registro horário com umidade e precipitação válidas. Os eventos “umidade alta” e “houve precipitação no intervalo associado ao horário” terão limiares declarados para o cálculo de probabilidades conjuntas e condicionais.
 
 **Gráfico:** comparação das probabilidades com suas contagens.
 
@@ -201,51 +203,51 @@ Agora sorteie um registro horário com umidade e precipitação válidas. Defina
 
 ### 19. O que muda ao inverter a condição?
 
-No mesmo conjunto elegível do desafio 18, compare a probabilidade de chuva dado umidade alta com a probabilidade de umidade alta dado chuva.
+A comparação usará o mesmo conjunto elegível do desafio 18 para contrastar a probabilidade de chuva dado umidade alta com a probabilidade de umidade alta dado chuva.
 
 **Matemática:** teorema de Bayes, complementos e probabilidade total.
 
-**Entrega:** cálculo por contagens e pela relação de Bayes, com conferência de consistência. Trate explicitamente eventos condicionantes sem ocorrências.
+**Entrega:** cálculo por contagens e pela relação de Bayes, com conferência de consistência e tratamento explícito de eventos condicionantes sem ocorrências.
 
-### 20. Seu simulador reproduz a frequência conhecida?
+### 20. O simulador reproduz a frequência conhecida?
 
-Use a proporção empírica de dias chuvosos para construir um experimento de Bernoulli didático. Simule várias repetições e tamanhos, comparando a proporção simulada com o parâmetro usado.
+A proporção empírica de dias chuvosos será o parâmetro de um experimento de Bernoulli didático. A simulação terá várias repetições e tamanhos para comparar a proporção simulada com o parâmetro usado.
 
-**Python puro:** implemente as simulações com `random` e semente reproduzível.
+**Python puro:** simulações com `random` e semente reproduzível.
 
 **Gráfico:** distribuição do erro por tamanho de simulação.
 
-**Critério:** a independência é uma hipótese do simulador; dias reais podem apresentar dependência temporal. Não use essa simulação como gerador meteorológico validado, nem espere erro decrescente em cada realização individual.
+**Critério:** a independência é uma hipótese do simulador; dias reais podem apresentar dependência temporal. Essa simulação não é um gerador meteorológico validado, e o erro não precisa decrescer em cada realização individual.
 
 ## Etapa 4 — limites com modelos explícitos
 
-Uma série horária finita não oferece observações em intervalos arbitrariamente pequenos. Nesta etapa, use modelos didáticos definidos matematicamente e indique o que é observado e o que foi modelado. Derivadas não são necessárias.
+Uma série horária finita não oferece observações em intervalos arbitrariamente pequenos. Esta etapa utiliza modelos didáticos definidos matematicamente, distinguindo observação de modelagem. Derivadas não são necessárias.
 
 ### 21. Uma conversão de unidade preserva aproximações?
 
-Considere a função de conversão de Celsius para Fahrenheit, `F(T) = 1,8T + 32`. Escolha uma temperatura de referência observada e estude o limite da função quando `T` se aproxima desse valor pela esquerda e pela direita.
+A função de conversão de Celsius para Fahrenheit, `F(T) = 1,8T + 32`, será analisada em torno de uma temperatura de referência observada, com aproximações de `T` pela esquerda e pela direita.
 
-**Entrega:** justificativa algébrica e tabela de aproximações. Relacione uma tolerância na saída a uma tolerância na entrada e explique o significado das unidades.
+**Entrega:** justificativa algébrica, tabela de aproximações e relação entre tolerâncias de saída e entrada, com explicação das unidades.
 
 **Critério:** este é um limite de uma função de conversão; não uma demonstração de continuidade da temperatura física medida.
 
-### 22. Sua regra de classificação cria uma descontinuidade?
+### 22. A regra de classificação cria uma descontinuidade?
 
-Escolha um limiar didático `L` e defina duas funções da temperatura: uma categoria numérica igual a 0 abaixo de `L` e 1 a partir de `L`; e um excesso térmico igual a zero até `L` e a `T − L` acima dele.
+O modelo terá um limiar didático `L` e duas funções da temperatura: uma categoria numérica igual a 0 abaixo de `L` e 1 a partir de `L`; e um excesso térmico igual a zero até `L` e a `T − L` acima dele.
 
-**Python puro:** implemente as duas funções, com parâmetros e validações.
+**Python puro:** duas funções com parâmetros e validações.
 
 **Matemática:** funções por partes, limites laterais e continuidade.
 
-**Entrega:** estudo em `L`, incluindo o valor de cada função no ponto, e gráfico comparativo. Explique como a escolha de uma regra modifica a saída mesmo diante de pequenas variações da entrada.
+**Entrega:** estudo em `L`, incluindo o valor de cada função no ponto, e gráfico comparativo, explicando como a escolha de uma regra modifica a saída mesmo diante de pequenas variações da entrada.
 
 ### 23. Um filtro se aproxima de uma referência constante?
 
-Considere um filtro didático `y_(k+1) = (1 − α)y_k + αT*`, com `0 < α < 1`, condição inicial `y_0` e entrada constante `T*`. Você pode escolher uma temperatura real como valor de `T*`, mas manter essa entrada constante é uma hipótese do exercício.
+O filtro didático será `y_(k+1) = (1 − α)y_k + αT*`, com `0 < α < 1`, condição inicial `y_0` e entrada constante `T*`. Uma temperatura real pode fornecer o valor de `T*`, mas manter essa entrada constante é uma hipótese do modelo.
 
-**Python puro:** implemente a sequência para diferentes valores de `α` e condições iniciais.
+**Python puro:** sequência calculada para diferentes valores de `α` e condições iniciais.
 
-**Matemática:** sequência, progressão geométrica e limite quando `k` cresce sem limite. Investigue uma expressão para `y_k` e justifique o comportamento esperado.
+**Matemática:** sequência, progressão geométrica e limite quando `k` cresce sem limite, com expressão para `y_k` e justificativa do comportamento esperado.
 
 **Gráfico:** aproximação para diferentes parâmetros.
 
@@ -253,11 +255,11 @@ Considere um filtro didático `y_(k+1) = (1 − α)y_k + αT*`, com `0 < α < 1`
 
 ### 24. Quantos passos atendem à tolerância?
 
-No modelo do desafio 23, escolha `ε > 0` e procure o menor inteiro `k >= 0` para o qual `|y_k − T*| < ε`.
+A partir do modelo do desafio 23 e de uma tolerância `ε > 0`, a busca deverá encontrar o menor inteiro `k >= 0` para o qual `|y_k − T*| < ε`.
 
-**Python puro:** implemente uma busca com limite de iterações e retorno explícito quando o critério não for atingido. Trate o caso em que a condição inicial já satisfaz a tolerância.
+**Python puro:** busca com limite de iterações e retorno explícito quando o critério não for atingido, incluindo o caso em que a condição inicial já satisfaz a tolerância.
 
-**Entrega:** comparação da busca com uma condição matemática sobre `k`; usar logaritmos é uma possibilidade de aprofundamento. Confira os valores de fronteira e discuta arredondamento numérico.
+**Entrega:** comparação da busca com uma condição matemática sobre `k`, conferência de valores de fronteira e discussão de arredondamento numérico. O uso de logaritmos é uma possibilidade de aprofundamento.
 
 **Critério:** relacionar a tolerância ao limite da sequência, sem interpretar a aproximação à referência como evidência de acurácia de um sensor.
 
@@ -265,63 +267,63 @@ No modelo do desafio 23, escolha `ε > 0` e procure o menor inteiro `k >= 0` par
 
 ### 25. Como a dependência temporal afeta a incerteza?
 
-Escolha uma média diária de temperatura como medida e investigue sua variabilidade por reamostragem. Compare uma abordagem que sorteia dias individualmente com uma abordagem em blocos consecutivos de dias, em um período relativamente homogêneo e com regra explícita para lacunas.
+A variabilidade de uma média diária de temperatura será investigada por reamostragem, comparando o sorteio de dias individuais com blocos consecutivos de dias, em período relativamente homogêneo e com regra explícita para lacunas.
 
-**Matemática:** bootstrap e bootstrap em blocos. Este desafio exige estudo adicional e pode ficar para depois.
+**Matemática:** bootstrap e bootstrap em blocos. A aplicação depende de avaliar previamente as hipóteses de reamostragem e pode ser adiada até que a série esteja caracterizada.
 
 **Gráfico:** distribuição das estimativas e sensibilidade ao tamanho dos blocos.
 
 **Critério:** discutir dependência e sazonalidade. Um intervalo produzido por reamostragem depende das hipóteses adotadas; vários anos não são obrigatoriamente intercambiáveis e um único ano não representa toda a variabilidade climática.
 
-### 26. Como reunir suas funções em uma engine?
+### 26. Como reunir as funções em uma engine?
 
-Crie uma interface em Python que receba estação, período, cobertura mínima e limiares didáticos. Ela deve coordenar leitura dos dados, validação, seleção do conjunto elegível, indicadores e episódios, devolvendo tabelas e metadados de execução.
+A interface em Python deverá receber estação, período, cobertura mínima e limiares didáticos. Ela coordenará leitura, validação, seleção do conjunto elegível, indicadores e episódios, devolvendo tabelas e metadados de execução.
 
-**Python:** reaproveite suas funções de coleta, validação e identificação de sequências. Separe aquisição, cálculo e apresentação para conseguir executar análises com dados já salvos, sem uma requisição a cada cálculo.
+**Python:** reutilização das funções de coleta, validação e identificação de sequências, separando aquisição, cálculo e apresentação para permitir análises com dados já salvos, sem uma requisição a cada cálculo.
 
 **Entrega:** documentação de entrada e saída, exemplos pequenos e tratamento de parâmetros inválidos ou seleção vazia. Funções em módulos são suficientes; classes e frameworks são opcionais.
 
-### 27. Quão sensíveis são seus resultados às regras?
+### 27. Quão sensíveis são os resultados às regras?
 
-Varie o limiar de dia seco, de episódio quente e a cobertura mínima, mudando um parâmetro por vez. Compare quantidade de dias elegíveis, número e duração de episódios e probabilidades empíricas.
+A análise de sensibilidade variará o limiar de dia seco, de episódio quente e a cobertura mínima, mudando um parâmetro por vez e comparando quantidade de dias elegíveis, número e duração de episódios e probabilidades empíricas.
 
 **Gráfico:** sensibilidade dos indicadores aos parâmetros.
 
-**Critério:** distinguir mudança no conjunto de dados elegíveis de mudança na definição do evento. Não escolher parâmetros só porque deixam o resultado mais chamativo.
+**Critério:** distinguir mudança no conjunto de dados elegíveis de mudança na definição do evento. A escolha dos parâmetros exige justificativa independente do apelo visual do resultado.
 
-### 28. Suas referências funcionam em outro período?
+### 28. As referências funcionam em outro período?
 
-Defina parâmetros e referências descritivas em um período inicial e aplique as mesmas regras em um período posterior. Compare a cobertura, as distribuições e a frequência das ocorrências.
+Parâmetros e referências descritivas definidos em um período inicial serão aplicados sem alteração a um período posterior, comparando cobertura, distribuições e frequência das ocorrências.
 
 **Entrega:** comparação com separação temporal explícita.
 
-**Critério:** não utilizar o período posterior para definir uma referência que você apresenta como anterior. Diferença entre dois anos, isoladamente, não demonstra uma tendência climática de longo prazo nem identifica sua causa.
+**Critério:** não utilizar o período posterior para definir uma referência apresentada como anterior. Diferença entre dois anos, isoladamente, não demonstra uma tendência climática de longo prazo nem identifica sua causa.
 
 ### 29. A engine consegue analisar milhões de horários?
 
-Amplie a leitura para várias estações e anos dos CSVs, preservando suas identidades. Processe por arquivo ou em partes quando necessário. Leve para a escala grande pelo menos as contagens, cobertura e indicadores por estação/período.
+A ampliação abrangerá várias estações e anos dos CSVs, preservando suas identidades e processando por arquivo ou em partes quando necessário. O processamento em maior escala deverá incluir pelo menos contagens, cobertura e indicadores por estação/período.
 
 **Entrega:** número real de registros, tempo, memória pelo método escolhido e comparação com um recorte pequeno processado integralmente.
 
-**Critério:** agregar somas e contagens de forma consistente, sem média simples de médias de blocos de tamanhos diferentes. Para sequências, trate eventos que atravessam o limite entre arquivos. Declare quais análises foram efetivamente escaladas.
+**Critério:** agregar somas e contagens de forma consistente, sem média simples de médias de blocos de tamanhos diferentes. Sequências que atravessam o limite entre arquivos exigem tratamento explícito. As análises efetivamente executadas em maior escala deverão ser identificadas.
 
-### 30. Que conclusão ambiental você consegue defender?
+### 30. Que conclusão ambiental os resultados sustentam?
 
-Prepare um relatório com três conclusões rastreáveis, até quatro gráficos, qualidade/cobertura dos dados, comparação entre fontes e análise de sensibilidade da engine.
+O relatório deverá reunir três conclusões rastreáveis, até quatro gráficos, qualidade/cobertura dos dados, comparação entre fontes e análise de sensibilidade da engine.
 
-**Entrega:** conclusões, evidências, limitações e uma pergunta aberta. Mostre uma investigação de chuva ou secura e uma de temperatura.
+**Entrega:** conclusões, evidências, limitações e uma pergunta aberta, com uma investigação de chuva ou secura e uma de temperatura.
 
-**Critério:** diferenciar fenômeno observado, estimativa de reanálise, definição de evento escolhida por você e inferência. O resultado deve permitir refazer a análise a partir das fontes e parâmetros registrados.
+**Critério:** diferenciar fenômeno observado, estimativa de reanálise, definição de evento adotada na análise e inferência. O resultado deve permitir refazer a análise a partir das fontes e parâmetros registrados.
 
-## Como delegar os gráficos
+## Apresentação dos resultados
 
-Forneça ao agente a tabela calculada, unidades, origem, período, fuso, denominadores e regra de cobertura. Descreva a pergunta, os eixos e as referências desejadas. Peça que qualquer transformação adicional seja explicada antes da execução e confira os valores apresentados.
+Os gráficos deverão partir de tabelas calculadas e verificáveis, acompanhadas de unidades, origem, período, fuso, denominadores e regra de cobertura. A pergunta, os eixos e as referências precisam estar claros. Qualquer transformação adicional deverá ser registrada e os valores apresentados, conferidos com as tabelas de origem.
 
-Você mantém a responsabilidade pelo cálculo e pela interpretação. Não envie só uma imagem de um DataFrame se puder fornecer a tabela em CSV.
+As tabelas que sustentam os gráficos deverão estar disponíveis em formato reutilizável, como CSV; uma imagem de DataFrame não substitui os dados necessários à reprodução do cálculo.
 
-## Começo sugerido
+## Sequência de desenvolvimento
 
-Na primeira sessão, faça apenas **01 e 02** em um arquivo de estação. Depois, trate qualidade e cobertura antes de comparar fontes. O cliente HTTP é um dos exercícios que você desenvolverá: preparar o ambiente não deve resolvê-lo antecipadamente.
+O desenvolvimento começa pelas atividades 01 e 02 em um arquivo de estação, seguido pelo diagnóstico de qualidade e cobertura. A comparação entre fontes depende dessa base e da implementação do cliente HTTP.
 
 | Foco | Desafios |
 |---|---|
@@ -332,7 +334,7 @@ Na primeira sessão, faça apenas **01 e 02** em um arquivo de estação. Depois
 | Limites e funções | 21–24 |
 | Construção da engine | 26–29 |
 
-Em uma revisão, envie sua tentativa e peça primeiro avaliação do raciocínio ou uma pista. Código completo e soluções ficam para quando você os solicitar explicitamente.
+Cada etapa deverá ser conferida com exemplos pequenos e resultados rastreáveis antes da ampliação do processamento.
 
 ## Fontes e escopo
 
@@ -342,4 +344,4 @@ Em uma revisão, envie sua tentativa e peça primeiro avaliação do raciocínio
 - [Open-Meteo — Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api).
 - [Open-Meteo — condições e limites de uso](https://open-meteo.com/en/terms).
 
-As fontes e sua documentação foram consultadas para propor o projeto. Não foram baixados os pacotes meteorológicos nem executadas consultas de dados à API nesta preparação. Cobertura, nomes efetivos de colunas e pareamento entre fontes devem ser verificados durante os desafios.
+O pacote INMET de 2024 já está organizado no ambiente local, sem versionamento dos dados. Não há consulta de dados ao Open-Meteo registrada. A aquisição e as verificações estão em [preparacao.md](preparacao.md); os formatos e as condições de uso, em [fontes.md](fontes.md). Cobertura e pareamento entre fontes permanecem requisitos a verificar durante as investigações.

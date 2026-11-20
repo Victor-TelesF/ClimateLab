@@ -1,134 +1,167 @@
 # ClimateLab
 
-**Laboratório de investigação ambiental com Python, estatística e ciência de dados.**
+Laboratório pessoal de investigação ambiental e análise de dados meteorológicos com Python.
 
-O ClimateLab combina programação, matemática e exploração de dados meteorológicos
-para investigar **temperatura, umidade relativa e precipitação**. O desenvolvimento
-é incremental: parte de observações do INMET e prevê ampliar as investigações
-com arquivos locais e APIs de outras fontes, como o Open-Meteo.
+O ClimateLab organiza séries de temperatura, umidade relativa e precipitação
+para investigar sua variação no tempo. O processamento começa com arquivos
+históricos de estações automáticas do INMET e será ampliado gradualmente para
+outras fontes, como a reanálise ERA5 obtida pelo Open-Meteo.
 
-## Objetivo da investigação
+O projeto está na etapa de extração dos arquivos locais. A padronização, o
+diagnóstico de qualidade e as análises reutilizáveis serão construídos em etapas.
 
-O recorte inicial é **uma estação, o ano de 2024 e três variáveis**. As perguntas
-orientam o estudo:
+## Perguntas de investigação
 
-- Como temperatura, umidade e chuva variam ao longo do tempo?
-- Quais padrões, extremos e períodos secos aparecem nos registros?
+O recorte inicial é uma estação, o ano de 2024 e três variáveis:
+
+- Como temperatura, umidade e chuva variam ao longo dos dias e meses?
+- Quais extremos, episódios quentes e sequências de dias secos aparecem nos registros?
+- Como lacunas e regras de cobertura afetam os indicadores?
 - Que relações estatísticas existem entre as variáveis?
-- Em que condições dados de fontes diferentes podem ser comparados?
+- Em que condições observações de estações e estimativas de reanálise podem ser comparadas?
 
-Cada análise deve explicitar a qualidade e a cobertura dos dados, o método,
-as hipóteses e os limites das conclusões. Um único ano não constitui uma normal
-climatológica, e uma associação estatística não demonstra causalidade.
+Cada análise deverá apresentar dados, método, hipóteses e limitações. Um único
+ano não constitui uma normal climatológica; correlação não demonstra causalidade.
+Investigar diferenças entre períodos também não basta para atribuí-las a mudanças
+climáticas ou urbanização.
+
+## Fontes de dados
+
+- **INMET:** observações de estações automáticas. O pacote de 2024 está disponível
+  no ambiente local, com o ZIP original e 565 CSVs, ignorados pelo Git.
+- **Open-Meteo / ERA5:** reanálise em grade prevista para comparação por API.
+  O cliente e a integração ainda não foram implementados.
+
+O acervo de CSVs precisa ser obtido separadamente. O notebook de inventário
+inclui uma prévia salva da estação A620. Consulte [fontes e formatos](docs/fontes.md)
+e o [guia de preparação local](docs/preparacao.md).
 
 ## Arquitetura e fluxo dos dados
 
-As fontes alimentam a investigação em notebooks. O desenho abaixo apresenta
-esse fluxo e sua evolução prevista, da aquisição às conclusões científicas.
-
 ```mermaid
 flowchart LR
-    INMET["Arquivos locais<br/>INMET"] --> NB["Notebooks<br/>Exploração dos dados"]
-    API["API meteorológica<br/>Open-Meteo"] -.-> PREP["Aquisição, validação<br/>e padronização"]
-    OUTRAS["Outras fontes<br/>científicas"] -.-> PREP
-    INMET -.-> PREP
-    PREP -.-> DADOS[("Dados preparados")]
-    DADOS -.-> NB
-    NB -.-> ANALISE["Estatística e<br/>séries temporais"]
-    ANALISE -.-> RESULTADOS["Gráficos, tabelas<br/>e relatórios"]
+    INMET["CSV INMET<br/>data/raw/inmet/ANO"] --> EXTRATOR["DataPaths e ExtractInmet<br/>Descoberta e leitura"]
+    EXTRATOR --> NB["Notebooks<br/>Inspeção de metadados e medições"]
+    EXTRATOR -.-> PREP["Validação e padronização"]
+    API["Open-Meteo / ERA5<br/>Aquisição por API"] -.-> RAW["Respostas brutas<br/>data/raw/open_meteo"]
+    RAW -.-> PREP
+    PREP -.-> DADOS[("Dados preparados<br/>data/processed")]
+    DADOS -.-> ANALISE["Indicadores e análises"]
+    ANALISE -.-> RESULTADOS["Tabelas e gráficos<br/>outputs"]
 
     classDef planejado stroke-dasharray:5 5
-    class API,OUTRAS,PREP,DADOS,ANALISE,RESULTADOS planejado
+    class API,RAW,PREP,DADOS,ANALISE,RESULTADOS planejado
 ```
 
-**Fluxo atual (seta contínua):** leitura de arquivos INMET no notebook, apoiada
-por `DataPaths` e `ColumnName`. **Evolução planejada (setas e contornos tracejados):**
-novas fontes, preparação, análises e resultados. O diagrama representa o fluxo
-dos dados; os módulos implementados estão descritos no estado atual e na estrutura
-do repositório.
+As linhas contínuas mostram a descoberta e a leitura disponíveis hoje.
+O tracejado indica as próximas etapas do projeto.
 
-Os originais ficam em `data/raw/`. `data/processed/` e `outputs/` são diretórios
-reservados para dados preparados e resultados; atualmente contêm apenas marcadores
-de diretório.
+Os originais ficam em `data/raw/`. `data/processed/`, `outputs/figures/` e
+`outputs/tables/` contêm apenas marcadores de diretório e estão reservados para
+dados preparados e resultados.
 
-## Estado atual
+## Estado da implementação
 
-| Componente | Situação |
-| --- | --- |
-| Ambiente Python e Jupyter | Dependências fixadas em `uv.lock`; configuração do VS Code disponível |
-| Dados INMET de 2024 | ZIP e 565 CSVs presentes no ambiente local; não versionados |
-| Seleção de arquivos | `DataPaths.csv_path()` localiza um CSV por estação e ano |
-| Nomes de colunas | `ColumnName` centraliza 19 nomes; não converte nem valida dados |
-| Notebook de inventário | Leitura e seleção de colunas implementadas; inventário e interpretação em andamento |
-| APIs, validação, indicadores e engine | Planejados; ainda não implementados |
+### Implementado
 
-O trabalho está no início da etapa 1. A disponibilidade dos arquivos e a leitura
-no notebook não comprovam a qualidade ou a cobertura das séries.
+- `DataPaths.csv_paths(year)` lista os CSVs de um ano em ordem de caminho,
+  aceitando variações de maiúsculas e minúsculas na extensão.
+- `ExtractInmet.inmet_paths()` produz pares de identificador estação/ano e caminho.
+- `ExtractInmet.inmet_metadata(file)` lê as oito primeiras linhas em duas colunas.
+- `ExtractInmet.inmet_dataframe(file)` lê as medições com separador `;`,
+  codificação Latin-1 e vírgula decimal, após as oito linhas iniciais.
+- `ExtractInmet.inmet_dataframes()` retorna identificador, caminho e DataFrame
+  por arquivo, carregando cada tabela conforme o iterador é consumido. Quando a
+  leitura de medições lança uma exceção, o lote registra o problema por caminho
+  em `registry_erros` e passa ao arquivo seguinte.
+- `ColumnName` reúne 19 nomes de colunas, sem converter ou validar valores.
 
-## Jornada dos 30 desafios
+### Em desenvolvimento
 
-A trilha desenvolve habilidades de Python, estatística, probabilidade e
-modelagem matemática a partir de perguntas ambientais. **As etapas abaixo são
-objetivos de aprendizagem, não funcionalidades concluídas.**
+O notebook de inventário exibe os metadados e as primeiras 100 observações de
+A620 em 2024. O inventário e a interpretação ainda estão em andamento.
+[Inspeção da estação A620](notebooks/01-inventario.ipynb)
 
-```mermaid
-flowchart LR
-    A["01–06<br/>Dados confiáveis"]
-    B["07–12<br/>API e integração"]
-    C["13–20<br/>Padrões e probabilidade"]
-    D["21–24<br/>Limites e modelos"]
-    E["25–30<br/>Engine, incerteza e escala"]
-    A --> B --> C --> D --> E
-```
+O notebook de teste experimenta uma listagem interativa. A célula atual
+termina após o primeiro arquivo para ambas as respostas, `0` e `1`.
+[Experimento de listagem](notebooks/teste.ipynb)
 
-Os [30 enunciados e critérios de conclusão](docs/desafios.md) orientam a
-investigação, a conferência dos cálculos e a interpretação científica.
-Escala, desempenho e conclusões ambientais permanecem metas a demonstrar.
+O extrator ainda presume o formato do nome e do cabeçalho. Um nome curto pode
+interromper o lote antes da leitura. Em leituras diretas, erros do parser podem
+resultar em `UnboundLocalError`. Em 19/11/2026, **29 de 60 testes passaram** e
+31 falharam em cenários de preservação de texto, validação estrutural e
+diagnóstico. [Contrato e resultado da suíte](tests/README.md#estado-da-suíte)
 
-## Começar no ambiente local
+### Planejado
 
-O projeto requer **Python 3.14** (`>=3.14,<3.15`); `.python-version` fixa
-**3.14.4**. Com o [uv](https://docs.astral.sh/uv/) instalado, execute na raiz:
+Aquisição por API, normalização temporal, diagnóstico de qualidade, regras de
+cobertura, indicadores, episódios, comparações entre fontes e uma engine de
+análise reutilizável. Ainda não há resultados científicos consolidados.
+
+## Decisões técnicas
+
+- A leitura separa metadados e medições para manter a identificação da estação
+  disponível durante a investigação. Os parâmetros atuais correspondem ao formato
+  inspecionado; outros arquivos e anos exigem conferência.
+- O iterador lê um arquivo por vez, evitando carregar todas as tabelas juntas.
+  Cada CSV ainda é lido integralmente; desempenho em grande escala não foi medido.
+- Dados brutos, dados preparados e resultados têm destinos separados para
+  permitir rastrear as transformações. Dados e resultados permanecem locais.
+- A implementação fica em `src/climatelab/`; os notebooks servem à exploração.
+  O planejamento prevê funções reutilizáveis antes de uma interface de engine.
+- O ambiente é definido por `pyproject.toml` e fixado em `uv.lock`, para reproduzir
+  as dependências com `uv sync --locked`.
+
+## Tecnologias
+
+Python e pandas sustentam a leitura atual. JupyterLab e ipykernel permitem a
+exploração em notebooks; pytest verifica descoberta, leitura e requisitos de
+validação. NumPy, Matplotlib, Seaborn, httpx e PyArrow já estão no ambiente,
+mas sua instalação não representa análises, gráficos, cliente HTTP ou exportação
+colunar implementados.
+
+## Execução local
+
+O projeto requer Python `>=3.14,<3.15`; `.python-version` fixa `3.14.4`.
+Com o [uv](https://docs.astral.sh/uv/) instalado, execute na raiz:
 
 ```bash
 uv sync --locked
-uv run --locked jupyter lab
 ```
 
-Abra [notebooks/01-inventario.ipynb](notebooks/01-inventario.ipynb). No VS Code,
-selecione `.venv/bin/python` como interpretador e como ambiente do kernel.
-Se precisar registrar um kernel com nome próprio:
+Antes de ler dados, obtenha os CSVs conforme o
+[guia de preparação](docs/preparacao.md#obter-os-csvs-manualmente), preservando
+os nomes originais em `data/raw/inmet/2024/`.
 
-```bash
-uv run --locked python -m ipykernel install --sys-prefix --name climatelab --display-name "ClimateLab (.venv)"
-```
-
-Execute o notebook com a raiz do repositório como diretório de trabalho,
-conforme a configuração em `.vscode/settings.json`.
-
-**Dependências:** pandas, NumPy, Matplotlib, Seaborn, JupyterLab, ipykernel,
-PyArrow e httpx. A presença de httpx e PyArrow no ambiente prepara os próximos
-exercícios; cliente HTTP e processamento colunar ainda não foram desenvolvidos.
-
-### Dados e utilitários
-
-Os dados não acompanham o clone. Para o notebook inicial, os CSVs de 2024 devem
-estar em `data/raw/inmet/2024/`, preservando os nomes originais. Consulte
-[fontes e aquisição](docs/fontes.md) e o [registro de preparação](docs/preparacao.md).
-
-Os imports usam o pacote instalado `climatelab`:
+Este exemplo lê o primeiro arquivo na ordenação de caminhos:
 
 ```python
-from climatelab.utils.columns_name import ColumnName
-from climatelab.utils.data_paths import DataPaths
+from climatelab.etl.extract import ExtractInmet
 
-csv_path = DataPaths().csv_path("A009", year=2024)
-temperature_column = ColumnName().temperatura_do_ar_bulbo_seco_horaria
+extractor = ExtractInmet(year=2024)
+identifier, csv_path = next(extractor.inmet_paths())
+metadata = extractor.inmet_metadata(csv_path)
+observations = extractor.inmet_dataframe(csv_path)
+print(identifier, metadata.shape, observations.shape)
 ```
 
-`csv_path()` exige exatamente uma correspondência: ausência ou ambiguidade gera
-`ValueError`; uma pasta de ano inexistente gera `FileNotFoundError`. Os parâmetros
-de leitura usados no notebook devem ser conferidos para outros arquivos e anos.
+Uma pasta de ano inexistente gera `FileNotFoundError`. Um arquivo no lugar da
+pasta gera `NotADirectoryError`. Em uma pasta sem CSVs, o `next()` do exemplo
+gera `StopIteration`. Para selecionar uma estação, confira os identificadores
+retornados por `inmet_paths()`, que ainda podem se repetir.
+
+Para abrir os notebooks ou executar os testes:
+
+```bash
+uv run --locked jupyter lab
+uv run --locked pytest
+```
+
+Use a raiz como diretório de trabalho, pois os caminhos padrão são relativos.
+No VS Code, `.vscode/settings.json` configura essa raiz para os notebooks e
+aponta o interpretador para `.venv/bin/python`. Selecione esse ambiente também
+como kernel. O registro opcional de um kernel com nome próprio está no
+[guia de preparação](docs/preparacao.md#requisitos-do-ambiente).
 
 ## Estrutura do repositório
 
@@ -136,40 +169,52 @@ de leitura usados no notebook devem ser conferidos para outros arquivos e anos.
 ClimateLab/
 ├── data/
 │   ├── raw/inmet/              # Originais locais: 2024.zip e 2024/*.CSV
-│   ├── raw/open_meteo/         # Reservado para futuras respostas da API
+│   ├── raw/open_meteo/         # Reservado para respostas da API
 │   └── processed/              # Reservado para dados preparados
 ├── docs/
-│   ├── assets/                 # SVGs originais preservados
-│   ├── desafios.md             # 30 desafios e critérios científicos
-│   ├── fontes.md               # Procedência, aquisição e atribuição
-│   └── preparacao.md           # Histórico da preparação local
+│   ├── desafios.md             # Planejamento de 30 investigações e requisitos
+│   ├── fontes.md               # Referências, formatos e atribuição
+│   └── preparacao.md           # Ambiente, aquisição e verificações
 ├── notebooks/
-│   └── 01-inventario.ipynb     # Investigação inicial em andamento
+│   ├── 01-inventario.ipynb     # Inspeção inicial em andamento
+│   └── teste.ipynb             # Experimento de listagem interativa
 ├── outputs/
 │   ├── figures/                # Reservado para gráficos
 │   └── tables/                 # Reservado para tabelas de resultados
 ├── src/climatelab/
 │   ├── __init__.py
+│   ├── etl/extract.py          # Leitura bruta de CSVs INMET
+│   ├── exceptions/
+│   │   └── inmet_exception.py  # Classes de erro em desenvolvimento
 │   └── utils/
 │       ├── columns_name.py
 │       └── data_paths.py
+├── tests/                     # Cenários de leitura e validação
 ├── .python-version
 ├── pyproject.toml
 ├── uv.lock
 └── README.md
 ```
 
-## Fontes e rigor científico
+## Roadmap
 
-- **INMET:** observações de estações automáticas; primeira fonte utilizada.
-- **Open-Meteo / ERA5:** reanálise em grade prevista para comparação por API;
-  integração ainda não implementada.
+As etapas abaixo definem entregáveis verificáveis. Apenas a leitura inicial da
+primeira etapa está implementada; sua conclusão depende de qualidade e cobertura.
 
-Observações de estações e estimativas de reanálise são produtos distintos.
-Compará-los exige conferir localização, unidades, referência temporal e cobertura.
-Ausência de medição e precipitação zero também precisam de tratamentos distintos.
+1. **Leitura e qualidade (01–06):** inventário, metadados estruturados,
+   diagnóstico de registros, cobertura por variável e indicadores diários com
+   regras explícitas de elegibilidade.
+2. **Integração de fontes (07–12):** cliente HTTP com persistência, respostas
+   normalizadas, correspondência espacial e temporal auditada e medidas de divergência.
+3. **Padrões e eventos (13–20):** perfis temporais, investigação de extremos,
+   sequências secas, episódios quentes e probabilidades com denominadores conhecidos.
+4. **Modelos matemáticos (21–24):** funções e simulações com hipóteses, limites
+   e tolerâncias documentados, separados das observações meteorológicas.
+5. **Engine, incerteza e escala (25–30):** interface reutilizável, reamostragem,
+   sensibilidade a parâmetros, comparação entre períodos, medição de desempenho
+   e relatório ambiental rastreável.
 
-Reprodutibilidade e rastreabilidade orientam o estudo: preservar originais,
-registrar fontes, parâmetros e transformações, e justificar limiares e regras de
-cobertura. Referências, atribuições e condições de uso estão em
-[docs/fontes.md](docs/fontes.md); cada fonte mantém suas próprias condições.
+Os [30 desafios de investigação](docs/desafios.md) detalham requisitos, métodos
+e critérios científicos. A comparação entre fontes exige compatibilidade de
+unidades, localização, fuso, intervalos de precipitação e cobertura. Essas
+condições deverão ser demonstradas antes de interpretar as diferenças.
