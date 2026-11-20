@@ -1,28 +1,43 @@
 # Arquitetura da extração
 
-O pacote em `src/climatelab/` concentra a descoberta e a leitura dos arquivos. O notebook consome essas interfaces para inspecionar uma estação. Os dados brutos ficam em `data/raw/inmet/<ano>/` e a extração produz tabelas em memória, preservando os CSVs de origem.
+O pacote em `src/climatelab/` concentra a descoberta e a leitura dos arquivos. A extração preserva os CSVs de origem e carrega as tabelas em memória.
+
+```mermaid
+flowchart LR
+    CSV["CSVs anuais do INMET"] --> P["DataPaths"]
+    P --> E["ExtractInmet"]
+    E --> M["Metadados da estação"]
+    E --> O["Observações horárias"]
+    M --> N["Notebook de inventário"]
+    O --> N
+```
 
 ## Interfaces
 
 | Interface | Comportamento atual |
 | --- | --- |
-| `DataPaths.csv_paths(year)` | Retorna uma lista ordenada de caminhos. Considera apenas arquivos diretamente na pasta do ano e aceita variações de caixa na extensão `.csv`. A raiz padrão é relativa ao diretório de trabalho. |
-| `ExtractInmet(year).inmet_paths()` | Produz pares `(identificador, caminho)`. Usa o quarto segmento do nome separado por `_` e os últimos quatro caracteres do segmento final para formar identificadores como `A620_2024`. |
-| `inmet_metadata(file)` | Lê as oito linhas iniciais com pandas, sem cabeçalho e com `dtype=str`. No perfil de 2024, cada linha contém um campo e seu valor. |
-| `inmet_dataframe(file)` | Pula as oito linhas de metadados e usa a linha seguinte como cabeçalho. Carrega todas as medições do arquivo em um DataFrame. |
-| `inmet_dataframes()` | Produz triplas `(identificador, caminho, DataFrame)` em ordem de caminho. A leitura das medições começa quando o iterador é consumido. |
-| `ColumnName` | Reúne os rótulos de 19 colunas do perfil de observações. A validação do cabeçalho está pendente. |
+| `DataPaths.csv_paths(year)` | Lista os arquivos diretamente em `data/raw/inmet/<ano>/`, ordenados por caminho. Aceita variações de caixa na extensão `.csv`. A raiz padrão é relativa ao diretório de trabalho. |
+| `ExtractInmet(year)` | Consulta a pasta anual no construtor e guarda a lista de caminhos em `paths`. Arquivos adicionados depois da construção exigem uma nova instância para entrar na descoberta. |
+| `inmet_paths()` | Ao consumir o iterador, valida o nome de cada arquivo e produz pares `(identificador, caminho)`, como `("A620_2024", caminho)`. |
+| `inmet_metadata(file)` | Lê as oito primeiras linhas com pandas, sem cabeçalho, usando `dtype=str`. |
+| `inmet_dataframe(file)` | Pula as oito primeiras linhas, usa a seguinte como cabeçalho e carrega todas as medições do arquivo em um DataFrame. |
+| `inmet_dataframes()` | Ao consumir o iterador, lê as medições e os metadados de cada caminho aceito e entrega triplas `(identificador, caminho, DataFrame de medições)`. |
+| `ColumnName` | Reúne os rótulos das 19 colunas do perfil de observações. O extrator ainda não usa esses rótulos para validar o cabeçalho. |
 
-A leitura separada permite consultar a identificação e as coordenadas da estação sem carregar as medições. No lote, a lista de caminhos é montada antes da primeira tabela e cada avanço lê somente os arquivos necessários para entregar o próximo resultado. [Formato do INMET](fontes.md) · [Exemplo de leitura individual](preparacao.md#primeira-leitura)
+As leituras individuais recebem um caminho diretamente. Para listar os arquivos sem abrir os CSVs, use `inmet_paths()`. Cada avanço do lote pode examinar vários nomes, mas carrega o conteúdo de um arquivo por vez. [Formato do INMET](fontes.md) · [Exemplo de leitura individual](preparacao.md#primeira-leitura)
 
 ## Falhas e limites
 
-- **Origem do lote.** Uma pasta anual vazia produz uma sequência vazia. Se a pasta estiver ausente, a descoberta propaga `FileNotFoundError`. Se o caminho apontar para um arquivo, propaga `NotADirectoryError`.
-- **Identificação.** O nome é interpretado antes do tratamento de erros por arquivo. Um nome curto pode interromper o lote com `IndexError`. O extrator pode entregar identificadores repetidos ou com ano diferente da pasta.
-- **Leitura direta.** Os leitores registram `EmptyDataError` e `ParserError` do pandas, mas em seguida tentam devolver uma variável sem valor e podem lançar `UnboundLocalError`. Outros erros, como falhas de acesso, propagam-se ao chamador. Algumas estruturas inválidas são aceitas pelo parser.
-- **Leitura em lote.** Quando a leitura das medições lança uma exceção, o lote a guarda na propriedade `registry_erros` da instância, indexada pelo caminho, e passa ao arquivo seguinte. O erro recebido pelo lote pode substituir o erro original do parser no dicionário.
+| Situação | Momento e comportamento |
+| --- | --- |
+| Pasta anual ausente ou caminho anual que aponta para um arquivo | O construtor propaga `FileNotFoundError` ou `NotADirectoryError`, respectivamente. |
+| Pasta existente sem CSVs | `DataPaths.csv_paths(year)` retorna uma lista vazia. Ao iniciar o consumo de qualquer iterador do extrator, ocorre `NoInmetFilesFoundError`. |
+| Nome ou código inválido, data inválida ou invertida, ano final divergente | `inmet_paths()` registra um aviso com nome do arquivo, tipo da exceção e motivo, e segue para o próximo caminho. Se todos os nomes forem rejeitados, o iterador se esgota sem resultados. |
+| Nome de estação com `_` | Pode ser rejeitado porque o leitor procura a data inicial em uma posição fixa entre os segmentos do nome. |
+| Identificador repetido | O lote pode entregar mais de um resultado para a mesma estação e ano. A política de duplicatas segue em aberto. |
+| CSV vazio, malformado ou inacessível | Os leitores diretos propagam os erros de leitura. Um erro ao ler medições ou metadados interrompe o lote. Algumas estruturas inválidas ainda são aceitas pelo pandas. |
 
-O contrato exercitado pela suíte prevê diagnóstico via `logging`, com arquivo e motivo, e continuidade após falhas isoladas de nome ou estrutura. A implementação atual cobre apenas parte desse contrato. As exceções específicas declaradas em `exceptions/inmet_exception.py` ainda não são lançadas pelos leitores. [Código do extrator](../src/climatelab/etl/extract.py) · [Contrato dos testes](../tests/README.md)
+A identificação usa o código da estação (uma letra maiúscula e três dígitos) e o ano da data final do nome. O extrator confere a ordem das datas e compara o ano final com o ano solicitado. As exceções de domínio usadas nessa etapa fazem parte do diagnóstico de nomes rejeitados. [Código do extrator](../src/climatelab/etl/extract.py) · [Exceções de domínio](../src/climatelab/exceptions/inmet_exception.py) · [Cenários da suíte](../tests/README.md)
 
 ## Destinos previstos
 

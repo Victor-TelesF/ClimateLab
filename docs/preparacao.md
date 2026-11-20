@@ -13,12 +13,12 @@ A suíte pode ser executada assim que o ambiente estiver pronto. [Execução e c
 ## Dados do INMET
 
 1. No portal do INMET, selecione **ANO 2024 (AUTOMÁTICA)** e baixe o ZIP. Os arquivos meteorológicos são obtidos separadamente do clone. [Históricos anuais](https://portal.inmet.gov.br/dadoshistoricos)
-2. Extraia os CSVs diretamente em `data/raw/inmet/2024/`, preservando seus nomes. O extrator procura os arquivos apenas nesse nível. Se já estiverem nessa pasta, siga para a leitura.
+2. Extraia os CSVs diretamente em `data/raw/inmet/2024/`, preservando seus nomes. O extrator lista os arquivos nesse nível ao ser instanciado. Se adicionar CSVs depois, crie uma nova instância para incluí-los.
 3. Para reproduzir o inventário, confirme que a pasta contém o CSV da estação A620. [Formato e identificação dos arquivos](fontes.md)
 
 ## Primeira leitura
 
-Abra o interpretador com `uv run --locked python` na raiz do repositório. O exemplo usa o primeiro CSV na ordem de caminhos e mostra o identificador e as dimensões das duas tabelas.
+Abra o interpretador com `uv run --locked python` na raiz do repositório. O exemplo usa o primeiro CSV com nome aceito na ordem de caminhos e mostra o identificador e as dimensões das duas tabelas.
 
 ```python
 from climatelab.etl.extract import ExtractInmet
@@ -30,7 +30,9 @@ medicoes = extrator.inmet_dataframe(arquivo)
 print(identificador, metadados.shape, medicoes.shape)
 ```
 
-Se o exemplo gerar `StopIteration`, a pasta anual existe, mas não contém CSVs diretamente nela. [Comportamento da descoberta](arquitetura.md#falhas-e-limites)
+- `FileNotFoundError` ou `NotADirectoryError` no construtor indica um problema no caminho da pasta anual. Confira o diretório de trabalho e a estrutura de `data/raw/inmet/`.
+- `NoInmetFilesFoundError` em `next()` indica que a pasta anual existe sem CSVs diretamente nela.
+- `StopIteration` no primeiro `next()` indica que todos os nomes encontrados foram rejeitados. Confira os nomes originais e os motivos registrados no log. [Comportamento da descoberta](arquitetura.md#falhas-e-limites)
 
 ## Notebook de inventário
 

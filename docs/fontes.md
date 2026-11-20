@@ -12,7 +12,9 @@ O ClimateLab lê os CSVs do pacote anual de estações automáticas do Instituto
 | Linha 9 | Cabeçalho das observações, com data, hora UTC e variáveis meteorológicas identificadas por nome e unidade. |
 | Linhas seguintes | Registros horários. Entre as variáveis estão temperatura do ar de bulbo seco (°C), umidade relativa do ar (%) e precipitação total horária (mm). |
 
-O leitor usa Latin-1, ponto e vírgula como separador e vírgula decimal nas medições. Um delimitador no fim do cabeçalho pode aparecer no DataFrame como a coluna extra `Unnamed: 19`. Preserve os nomes originais dos arquivos, pois eles identificam a estação e o ano na descoberta.
+O leitor usa Latin-1, ponto e vírgula como separador e vírgula decimal nas medições. Um delimitador no fim do cabeçalho pode aparecer no DataFrame como a coluna extra `Unnamed: 19`.
+
+Preserve os nomes originais dos arquivos. Em `INMET_SE_RJ_A620_CAMPOS DOS GOYTACAZES - SAO TOME_01-01-2024_A_31-12-2024.CSV`, o extrator obtém `A620` do código da estação e `2024` da data final. As datas do nome delimitam o período indicado pelo arquivo. Para medir cobertura, é preciso verificar os registros da série. [Validação dos nomes](arquitetura.md#falhas-e-limites)
 
 Data e hora ficam em colunas separadas. Medições em branco permanecem ausentes, e zero é um valor observado. O extrator não interpreta sentinelas como `-9999`. Nos metadados, o pandas pode converter textos literais como `NA`, `NULL` e `N/A` em valores ausentes. Antes de incorporar outro perfil histórico, confira o cabeçalho, as unidades e os marcadores de ausência. [Preparação dos arquivos](preparacao.md)
 
