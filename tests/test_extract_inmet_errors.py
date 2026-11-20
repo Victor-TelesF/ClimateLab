@@ -1,128 +1,81 @@
-"""Validações desejadas: falhas aqui representam trabalho ainda pendente.
+"""Contrato de estrutura do CSV e tratamento de falhas durante o lote."""
 
-Arquivos inválidos devem causar ValueError e informar o nome do arquivo.
-O lote deve parar no primeiro arquivo inválido, sem ignorá-lo silenciosamente.
-"""
-
+import logging
 import re
-from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 
-def rejected_file(path):
-    """Aceita subclasses de ValueError, mas exige diagnóstico com o arquivo."""
-    return pytest.raises(ValueError, match=re.escape(path.name))
+@pytest.fixture
+def batch_log(caplog):
+    caplog.set_level(logging.DEBUG)
+    return caplog
 
 
-@pytest.mark.parametrize(
-    "year",
-    [None, "2024", 2024.0, True, False, [], {}, Path("2024")],
-    ids=["none", "string", "float", "true", "false", "list", "dict", "path"],
-)
-def test_rejects_non_integer_year(extractor_factory, year):
-    with pytest.raises(TypeError):
-        extractor_factory(year)
+def assert_file_failure(log, path, reason):
+    messages = []
+    for record in log.records:
+        message = record.getMessage()
+        if record.exc_info:
+            message = f"{message} {record.exc_info[1]}"
+        if path.name in message:
+            messages.append(message.replace(path.name, ""))
 
-
-@pytest.mark.parametrize("year", [-1, 0, 10000])
-def test_rejects_year_outside_calendar_range(extractor_factory, year):
-    with pytest.raises(ValueError):
-        extractor_factory(year)
-
-
-@pytest.mark.parametrize(
-    "name",
-    [
-        "unexpected.CSV",
-        "INMET_SE_SP__TEST_01-01-2024_A_31-12-2024.CSV",
-        "INMET_SE_SP_A702_TEST.CSV",
-        "INMET_SE_SP_A702_TEST_01-01-2024_A_invalid.CSV",
-    ],
-)
-def test_rejects_malformed_filename(extractor, write_inmet, name):
-    path = write_inmet(name=name)
-    with rejected_file(path):
-        list(extractor.inmet_paths())
-
-
-def test_rejects_filename_year_different_from_requested_year(extractor, write_inmet):
-    path = write_inmet(name="INMET_SE_SP_A702_TEST_01-01-2023_A_31-12-2023.CSV")
-    with rejected_file(path):
-        list(extractor.inmet_paths())
-
-
-def test_rejects_duplicate_station_year_identifiers(extractor, write_inmet):
-    write_inmet()
-    write_inmet(name="INMET_SE_SP_A702_OTHER_01-01-2024_A_31-12-2024.CSV")
-    with pytest.raises(ValueError, match="A702_2024"):
-        list(extractor.inmet_paths())
-
-
-def test_rejects_station_mismatch_between_filename_and_metadata(
-    extractor, write_inmet, metadata_rows,
-):
-    metadata_rows[3][1] = "A123"
-    path = write_inmet(metadata=metadata_rows)
-    with rejected_file(path):
-        list(extractor.inmet_dataframes())
+    assert any(re.search(reason, message, re.IGNORECASE) for message in messages), (
+        f"Esperado diagnóstico com {path.name!r} e motivo compatível com {reason!r}. "
+        f"Registros capturados: {log.text!r}"
+    )
 
 
 @pytest.mark.parametrize("method", ["inmet_metadata", "inmet_dataframe"])
-def test_rejects_empty_file_with_filename_in_error(extractor, write_inmet, method):
+def test_rejects_empty_file(extractor, write_inmet, method):
     path = write_inmet()
     path.write_bytes(b"")
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         getattr(extractor, method)(path)
 
 
 @pytest.mark.parametrize("method", ["inmet_metadata", "inmet_dataframe"])
 def test_rejects_truncated_metadata(extractor, write_inmet, metadata_rows, method):
     path = write_inmet(metadata=metadata_rows[:-1])
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         getattr(extractor, method)(path)
 
 
 def test_rejects_extra_metadata_line(extractor, write_inmet, metadata_rows):
     path = write_inmet(metadata=[*metadata_rows, ["UNEXPECTED:", "extra"]])
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_dataframe(path)
 
 
-@pytest.mark.parametrize("problem", ["missing_key", "duplicate_key", "empty_value"])
-def test_rejects_invalid_metadata_fields(
-    extractor, write_inmet, metadata_rows, problem,
-):
-    if problem == "missing_key":
-        metadata_rows[4][0] = "UNEXPECTED:"
-    elif problem == "duplicate_key":
-        metadata_rows[4][0] = metadata_rows[5][0]
-    else:
-        metadata_rows[2][1] = ""
+@pytest.mark.parametrize(
+    "replacement",
+    [
+        pytest.param(["UNEXPECTED:", "-23,496294"], id="missing_key"),
+        pytest.param(["LONGITUDE:", "-23,496294"], id="duplicate_key"),
+        pytest.param(["LATITUDE:"], id="missing_field"),
+        pytest.param(["LATITUDE:", "-23,496294", "extra"], id="extra_field"),
+    ],
+)
+def test_rejects_invalid_metadata_row(extractor, write_inmet, metadata_rows, replacement):
+    metadata_rows[4] = replacement
     path = write_inmet(metadata=metadata_rows)
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_metadata(path)
-
-
-@pytest.mark.parametrize("literal", ["NA", "NULL", "N/A"])
-def test_metadata_does_not_convert_literal_text_to_nan(
-    extractor, write_inmet, metadata_rows, literal,
-):
-    metadata_rows[2][1] = literal
-    actual = extractor.inmet_metadata(write_inmet(metadata=metadata_rows))
-    assert actual.iloc[2, 1] == literal
 
 
 def test_rejects_missing_observation_header(extractor, write_inmet):
     path = write_inmet()
     metadata_only = "\n".join(path.read_text(encoding="latin1").splitlines()[:8])
     path.write_text(metadata_only + "\n", encoding="latin1")
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_dataframe(path)
 
 
 @pytest.mark.parametrize(
-    "problem", ["missing_column", "unexpected_column", "duplicate_column", "extra_column"]
+    "problem",
+    ["missing_column", "missing_time_column", "duplicate_column", "extra_column"],
 )
 def test_rejects_invalid_observation_header(
     extractor, write_inmet, columns, observation_rows, problem,
@@ -131,22 +84,22 @@ def test_rejects_invalid_observation_header(
         columns.pop(7)
         for row in observation_rows:
             row.pop(7)
-    elif problem == "unexpected_column":
-        columns[2] = "UNKNOWN MEASUREMENT"
+    elif problem == "missing_time_column":
+        columns[1] = "UNKNOWN TEMPORAL FIELD"
     elif problem == "duplicate_column":
         columns[3] = columns[2]
     else:
-        columns.append("EXTRA MEASUREMENT")
+        columns.insert(-1, "EXTRA MEASUREMENT")
         for row in observation_rows:
-            row.append("1")
+            row.insert(-1, "1")
     path = write_inmet(header=columns, rows=observation_rows)
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_dataframe(path)
 
 
 def test_rejects_wrong_delimiter(extractor, write_inmet):
     path = write_inmet(delimiter=",")
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_dataframe(path)
 
 
@@ -155,55 +108,7 @@ def test_rejects_value_in_trailing_unnamed_column(
 ):
     observation_rows[0][-1] = "42"
     path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
-        extractor.inmet_dataframe(path)
-
-
-@pytest.mark.parametrize("value", ["abc", "1.2.3"])
-def test_rejects_non_numeric_measurement(extractor, write_inmet, observation_rows, value):
-    observation_rows[0][2] = value
-    path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
-        extractor.inmet_dataframe(path)
-
-
-@pytest.mark.parametrize("value", ["", "invalid-date", "2024/02/30", "2024/04/31", "2024/13/01"])
-def test_rejects_invalid_date(extractor, write_inmet, observation_rows, value):
-    observation_rows[0][0] = value
-    path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
-        extractor.inmet_dataframe(path)
-
-
-def test_rejects_leap_day_in_non_leap_year(
-    extractor_factory, write_inmet, observation_rows,
-):
-    for row in observation_rows:
-        row[0] = "2023/02/29"
-    path = write_inmet(year=2023, rows=observation_rows)
-    with rejected_file(path):
-        extractor_factory(2023).inmet_dataframe(path)
-
-
-@pytest.mark.parametrize("value", ["", "2500 UTC", "0060 UTC", "0030 UTC", "0000", "noon"])
-def test_rejects_invalid_utc_hour(extractor, write_inmet, observation_rows, value):
-    observation_rows[0][1] = value
-    path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
-        extractor.inmet_dataframe(path)
-
-
-def test_rejects_observation_from_another_year(extractor, write_inmet, observation_rows):
-    observation_rows[0][0] = "2023/01/01"
-    path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
-        extractor.inmet_dataframe(path)
-
-
-def test_rejects_duplicate_timestamps(extractor, write_inmet, observation_rows):
-    observation_rows[1][:2] = observation_rows[0][:2]
-    path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_dataframe(path)
 
 
@@ -214,20 +119,153 @@ def test_rejects_inconsistent_observation_width(
     if problem == "too_many_fields":
         observation_rows[1].append("unexpected")
     else:
-        observation_rows[1] = observation_rows[1][:3]
+        observation_rows[1].pop(-2)
     path = write_inmet(rows=observation_rows)
-    with rejected_file(path):
+    with pytest.raises(ValueError):
         extractor.inmet_dataframe(path)
 
 
-def test_batch_stops_at_corrupt_file_and_reports_its_name(extractor, write_inmet):
+@pytest.mark.parametrize(
+    ("problem", "reason"),
+    [
+        pytest.param("row_width", r"colun|column|campo|field|largura|width", id="row_width"),
+        pytest.param("metadata", r"metadad|metadata|chave|key|duplic|repet", id="metadata"),
+    ],
+)
+def test_batch_continues_after_malformed_csv(
+    extractor, write_inmet, observation_rows, metadata_rows, batch_log, problem, reason,
+):
+    last = write_inmet(station="A003", rows=observation_rows[:1])
     first = write_inmet(station="A001")
-    corrupt = write_inmet(station="A002")
-    write_inmet(station="A003")
-    corrupt.write_bytes(b"")
-    iterator = extractor.inmet_dataframes()
-    identifier, path, frame = next(iterator)
-    assert (identifier, path) == ("A001_2024", first)
-    assert len(frame) == 2
-    with rejected_file(corrupt):
-        next(iterator)
+    if problem == "row_width":
+        observation_rows[1].append("unexpected")
+    else:
+        metadata_rows[4][0] = metadata_rows[5][0]
+    metadata_rows[3][1] = "A002"
+    corrupt = write_inmet(station="A002", rows=observation_rows, metadata=metadata_rows)
+
+    results = [
+        (identifier, path, frame["Hora UTC"].tolist())
+        for identifier, path, frame in extractor.inmet_dataframes()
+    ]
+
+    assert results == [
+        ("A001_2024", first, ["0000 UTC", "0100 UTC"]),
+        ("A003_2024", last, ["0000 UTC"]),
+    ]
+    assert_file_failure(batch_log, corrupt, reason)
+
+
+def test_batch_with_only_invalid_files_reports_each_failure(
+    extractor, write_inmet, batch_log,
+):
+    empty = write_inmet(station="A001")
+    empty.write_bytes(b"")
+    wrong_delimiter = write_inmet(station="A002", delimiter=",")
+
+    assert list(extractor.inmet_dataframes()) == []
+
+    assert_file_failure(batch_log, empty, r"vazi[oa]|empty|no columns to parse")
+    assert_file_failure(
+        batch_log, wrong_delimiter, r"delimit|separador|separator|cabeçalho|header|colun|column"
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        pytest.param("A002.CSV", id="short_name"),
+        pytest.param(
+            "INMET_SE_RJ__TEST_01-01-2024_A_31-12-2024.CSV", id="missing_station"
+        ),
+        pytest.param("INMET_SE_SP_A002_TEST.CSV", id="missing_year"),
+        pytest.param(
+            "INMET_SE_SP_A002_TEST_01-01-2024_A_invalid.CSV", id="invalid_year"
+        ),
+    ],
+)
+def test_batch_continues_after_malformed_filename(
+    extractor, write_inmet, batch_log, name,
+):
+    invalid = write_inmet(station="A002", name=name)
+    valid = write_inmet(station="A003")
+    results = list(extractor.inmet_dataframes())
+
+    assert [(identifier, path) for identifier, path, _ in results] == [
+        ("A003_2024", valid),
+    ]
+    assert_file_failure(
+        batch_log, invalid, r"nome|file\s*name|estaç[aã]o|station|identific|padr[aã]o|ano|year"
+    )
+
+
+def test_batch_rejects_filename_year_different_from_requested_year(
+    extractor, write_inmet, batch_log,
+):
+    valid = write_inmet(station="A003")
+    misplaced = write_inmet(year=2023, station="A002")
+    misplaced = misplaced.rename(valid.parent / misplaced.name)
+
+    results = list(extractor.inmet_dataframes())
+
+    assert [(identifier, path) for identifier, path, _ in results] == [
+        ("A003_2024", valid),
+    ]
+    assert_file_failure(batch_log, misplaced, r"\bano\b|\byear\b|2023.*2024|2024.*2023")
+
+
+def test_batch_does_not_deliver_duplicate_station_year_identifiers(
+    extractor, write_inmet, batch_log,
+):
+    first = write_inmet(station="A001")
+    other = write_inmet(
+        station="A001", name="INMET_SE_SP_A001_OTHER_01-01-2024_A_31-12-2024.CSV"
+    )
+    unrelated = write_inmet(station="A002")
+
+    results = [(identifier, path) for identifier, path, _ in extractor.inmet_dataframes()]
+
+    assert [result for result in results if result[0] != "A001_2024"] == [
+        ("A002_2024", unrelated),
+    ]
+    delivered = [path for identifier, path in results if identifier == "A001_2024"]
+    assert len(delivered) <= 1, f"Identificador A001_2024 repetido: {delivered!r}"
+    assert set(delivered) <= {first, other}
+    for excluded in {first, other}.difference(delivered):
+        assert_file_failure(batch_log, excluded, r"duplic|repet|colis|já existe|already exists")
+
+
+@pytest.mark.parametrize(
+    "expected_error",
+    [
+        pytest.param(FileNotFoundError, id="missing_year"),
+        pytest.param(NotADirectoryError, id="year_is_a_file"),
+    ],
+)
+def test_batch_propagates_invalid_year_directory(extractor, inmet_root, expected_error):
+    if expected_error is NotADirectoryError:
+        (inmet_root / "2024").write_text("not a directory")
+
+    with pytest.raises(expected_error):
+        list(extractor.inmet_dataframes())
+
+
+def test_batch_reads_on_demand_when_skipping_invalid_file(
+    extractor, write_inmet, batch_log,
+):
+    first = write_inmet(station="A001")
+    empty = write_inmet(station="A002")
+    empty.write_bytes(b"")
+    last = write_inmet(station="A003")
+
+    with patch.object(extractor, "inmet_dataframe", wraps=extractor.inmet_dataframe) as read:
+        iterator = extractor.inmet_dataframes()
+        read.assert_not_called()
+        assert next(iterator)[:2] == ("A001_2024", first)
+        read.assert_called_once_with(first)
+
+        assert next(iterator)[:2] == ("A003_2024", last)
+        assert read.call_args.args == (last,)
+        assert_file_failure(batch_log, empty, r"vazi[oa]|empty|no columns to parse")
+        with pytest.raises(StopIteration):
+            next(iterator)

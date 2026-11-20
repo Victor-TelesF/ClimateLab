@@ -68,11 +68,11 @@ def test_accepts_header_without_the_trailing_empty_column(
     assert frame.iloc[1, 7] == -2.5
 
 
-def test_accepts_valid_leap_day(extractor, write_inmet, observation_rows):
-    for row in observation_rows:
-        row[0] = "2024/02/29"
-    frame = extractor.inmet_dataframe(write_inmet(rows=observation_rows))
-    assert frame["Data"].tolist() == ["2024/02/29", "2024/02/29"]
+@pytest.mark.parametrize("literal", ["NA", "NULL", "N/A"])
+def test_metadata_preserves_literal_text(extractor, write_inmet, metadata_rows, literal):
+    metadata_rows[2][1] = literal
+    actual = extractor.inmet_metadata(write_inmet(metadata=metadata_rows))
+    assert actual.iloc[2, 1] == literal
 
 
 @pytest.mark.parametrize("year", [2023, 2024, 2025])
@@ -97,15 +97,15 @@ def test_station_name_can_contain_underscores(extractor, write_inmet):
     assert list(extractor.inmet_paths()) == [("A702_2024", path)]
 
 
-def test_dataframe_iteration_returns_every_file(extractor, write_inmet):
-    last = write_inmet(station="A702")
+def test_dataframe_iteration_returns_every_file(extractor, write_inmet, observation_rows):
+    last = write_inmet(station="A702", rows=observation_rows[:1])
     first = write_inmet(station="A001")
     results = list(extractor.inmet_dataframes())
     assert [(identifier, path) for identifier, path, _ in results] == [
         ("A001_2024", first), ("A702_2024", last),
     ]
-    for _, path, frame in results:
-        assert_frame_equal(frame, extractor.inmet_dataframe(path))
+    assert results[0][2]["Hora UTC"].tolist() == ["0000 UTC", "0100 UTC"]
+    assert results[1][2]["Hora UTC"].tolist() == ["0000 UTC"]
 
 
 def test_dataframes_are_read_only_as_the_iterator_is_consumed(extractor, write_inmet):
