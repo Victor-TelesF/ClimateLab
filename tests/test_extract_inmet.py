@@ -6,6 +6,8 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
+from climatelab.exceptions.inmet_exception import NoInmetFilesFoundError
+
 
 def test_metadata_preserves_all_eight_fields_as_strings(
     extractor, write_inmet, metadata_rows,
@@ -84,23 +86,24 @@ def test_year_parameter_is_not_hardcoded(extractor_factory, write_inmet, year):
     assert frame["Data"].tolist() == [f"{year}/01/01"] * 2
 
 
-def test_paths_keep_station_identifier_and_sorted_order(extractor, write_inmet):
+def test_paths_keep_station_identifier_and_sorted_order(extractor_factory, write_inmet):
     last = write_inmet(station="A702")
     first = write_inmet(station="A001")
+    extractor = extractor_factory(2024)
     assert list(extractor.inmet_paths()) == [("A001_2024", first), ("A702_2024", last)]
 
 
-def test_station_name_can_contain_underscores(extractor, write_inmet):
+def test_station_name_can_contain_underscores(extractor_factory, write_inmet):
     path = write_inmet(
         name="INMET_SE_SP_A702_SAO_PAULO_MIRANTE_01-01-2024_A_31-12-2024.CSV"
     )
-    assert list(extractor.inmet_paths()) == [("A702_2024", path)]
+    assert list(extractor_factory(2024).inmet_paths()) == [("A702_2024", path)]
 
 
-def test_dataframe_iteration_returns_every_file(extractor, write_inmet, observation_rows):
+def test_dataframe_iteration_returns_every_file(extractor_factory, write_inmet, observation_rows):
     last = write_inmet(station="A702", rows=observation_rows[:1])
     first = write_inmet(station="A001")
-    results = list(extractor.inmet_dataframes())
+    results = list(extractor_factory(2024).inmet_dataframes())
     assert [(identifier, path) for identifier, path, _ in results] == [
         ("A001_2024", first), ("A702_2024", last),
     ]
@@ -108,25 +111,35 @@ def test_dataframe_iteration_returns_every_file(extractor, write_inmet, observat
     assert results[1][2]["Hora UTC"].tolist() == ["0000 UTC"]
 
 
-def test_dataframes_are_read_only_as_the_iterator_is_consumed(extractor, write_inmet):
+def test_dataframes_are_read_only_as_the_iterator_is_consumed(extractor_factory, write_inmet):
     first = write_inmet(station="A001")
     last = write_inmet(station="A702")
-    with patch.object(extractor, "inmet_dataframe", wraps=extractor.inmet_dataframe) as read:
+    with patch.object(
+        extractor_factory,
+        "inmet_dataframe",
+        autospec=True,
+        side_effect=extractor_factory.inmet_dataframe,
+    ) as read:
+        extractor = extractor_factory(2024)
         iterator = extractor.inmet_dataframes()
         read.assert_not_called()
         next(iterator)
-        read.assert_called_once_with(first)
+        read.assert_called_once_with(extractor, first)
         next(iterator)
         assert read.call_count == 2
-        assert read.call_args.args == (last,)
+        assert read.call_args.args == (extractor, last)
         with pytest.raises(StopIteration):
             next(iterator)
 
 
-def test_empty_year_has_no_paths_or_dataframes(extractor, inmet_root):
+@pytest.mark.parametrize("method", ["inmet_paths", "inmet_dataframes"])
+def test_empty_year_raises_when_iteration_starts(extractor_factory, inmet_root, method):
     (inmet_root / "2024").mkdir()
-    assert list(extractor.inmet_paths()) == []
-    assert list(extractor.inmet_dataframes()) == []
+    extractor = extractor_factory(2024)
+    iterator = getattr(extractor, method)()
+
+    with pytest.raises(NoInmetFilesFoundError):
+        next(iterator)
 
 
 @pytest.mark.parametrize("method", ["inmet_metadata", "inmet_dataframe"])
@@ -139,8 +152,3 @@ def test_missing_file_raises_file_not_found(extractor, tmp_path, method):
 def test_directory_instead_of_csv_raises_is_a_directory(extractor, tmp_path, method):
     with pytest.raises(IsADirectoryError):
         getattr(extractor, method)(tmp_path)
-
-
-def test_missing_year_raises_file_not_found(extractor):
-    with pytest.raises(FileNotFoundError):
-        list(extractor.inmet_paths())

@@ -25,7 +25,9 @@ def extractor_factory(monkeypatch, inmet_root):
 
 
 @pytest.fixture
-def extractor(extractor_factory):
+def extractor(extractor_factory, inmet_root):
+    # As leituras diretas recebem o caminho do CSV explicitamente.
+    (inmet_root / "2024").mkdir()
     return extractor_factory(2024)
 
 

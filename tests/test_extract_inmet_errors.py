@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
+from climatelab.exceptions.inmet_exception import InmetYearMismatchError
+
 
 @pytest.fixture
 def batch_log(caplog):
@@ -36,9 +38,17 @@ def test_rejects_empty_file(extractor, write_inmet, method):
         getattr(extractor, method)(path)
 
 
-@pytest.mark.parametrize("method", ["inmet_metadata", "inmet_dataframe"])
-def test_rejects_truncated_metadata(extractor, write_inmet, metadata_rows, method):
-    path = write_inmet(metadata=metadata_rows[:-1])
+@pytest.mark.parametrize(
+    ("method", "observation_block"),
+    [
+        pytest.param("inmet_metadata", {}, id="inmet_metadata"),
+        pytest.param("inmet_dataframe", {}, id="inmet_dataframe"),
+        pytest.param("inmet_metadata", {"header": [], "rows": []}, id="metadata_only"),
+    ],
+)
+def test_rejects_truncated_metadata(extractor, write_inmet, metadata_rows, method, observation_block):
+    # Sem observações, a leitura também deve rejeitar a ausência do oitavo par.
+    path = write_inmet(metadata=metadata_rows[:-1], **observation_block)
     with pytest.raises(ValueError):
         getattr(extractor, method)(path)
 
@@ -133,7 +143,7 @@ def test_rejects_inconsistent_observation_width(
     ],
 )
 def test_batch_continues_after_malformed_csv(
-    extractor, write_inmet, observation_rows, metadata_rows, batch_log, problem, reason,
+    extractor_factory, write_inmet, observation_rows, metadata_rows, batch_log, problem, reason,
 ):
     last = write_inmet(station="A003", rows=observation_rows[:1])
     first = write_inmet(station="A001")
@@ -143,6 +153,7 @@ def test_batch_continues_after_malformed_csv(
         metadata_rows[4][0] = metadata_rows[5][0]
     metadata_rows[3][1] = "A002"
     corrupt = write_inmet(station="A002", rows=observation_rows, metadata=metadata_rows)
+    extractor = extractor_factory(2024)
 
     results = [
         (identifier, path, frame["Hora UTC"].tolist())
@@ -157,13 +168,13 @@ def test_batch_continues_after_malformed_csv(
 
 
 def test_batch_with_only_invalid_files_reports_each_failure(
-    extractor, write_inmet, batch_log,
+    extractor_factory, write_inmet, batch_log,
 ):
     empty = write_inmet(station="A001")
     empty.write_bytes(b"")
     wrong_delimiter = write_inmet(station="A002", delimiter=",")
 
-    assert list(extractor.inmet_dataframes()) == []
+    assert list(extractor_factory(2024).inmet_dataframes()) == []
 
     assert_file_failure(batch_log, empty, r"vazi[oa]|empty|no columns to parse")
     assert_file_failure(
@@ -185,11 +196,11 @@ def test_batch_with_only_invalid_files_reports_each_failure(
     ],
 )
 def test_batch_continues_after_malformed_filename(
-    extractor, write_inmet, batch_log, name,
+    extractor_factory, write_inmet, batch_log, name,
 ):
     invalid = write_inmet(station="A002", name=name)
     valid = write_inmet(station="A003")
-    results = list(extractor.inmet_dataframes())
+    results = list(extractor_factory(2024).inmet_dataframes())
 
     assert [(identifier, path) for identifier, path, _ in results] == [
         ("A003_2024", valid),
@@ -200,28 +211,29 @@ def test_batch_continues_after_malformed_filename(
 
 
 def test_batch_rejects_filename_year_different_from_requested_year(
-    extractor, write_inmet, batch_log,
+    extractor_factory, write_inmet, batch_log,
 ):
     valid = write_inmet(station="A003")
     misplaced = write_inmet(year=2023, station="A002")
     misplaced = misplaced.rename(valid.parent / misplaced.name)
 
-    results = list(extractor.inmet_dataframes())
+    results = list(extractor_factory(2024).inmet_dataframes())
 
     assert [(identifier, path) for identifier, path, _ in results] == [
         ("A003_2024", valid),
     ]
-    assert_file_failure(batch_log, misplaced, r"\bano\b|\byear\b|2023.*2024|2024.*2023")
+    assert_file_failure(batch_log, misplaced, rf"\b{InmetYearMismatchError.__name__}\b")
 
 
 def test_batch_does_not_deliver_duplicate_station_year_identifiers(
-    extractor, write_inmet, batch_log,
+    extractor_factory, write_inmet, batch_log,
 ):
     first = write_inmet(station="A001")
     other = write_inmet(
         station="A001", name="INMET_SE_SP_A001_OTHER_01-01-2024_A_31-12-2024.CSV"
     )
     unrelated = write_inmet(station="A002")
+    extractor = extractor_factory(2024)
 
     results = [(identifier, path) for identifier, path, _ in extractor.inmet_dataframes()]
 
@@ -242,21 +254,22 @@ def test_batch_does_not_deliver_duplicate_station_year_identifiers(
         pytest.param(NotADirectoryError, id="year_is_a_file"),
     ],
 )
-def test_batch_propagates_invalid_year_directory(extractor, inmet_root, expected_error):
+def test_constructor_rejects_invalid_year_directory(extractor_factory, inmet_root, expected_error):
     if expected_error is NotADirectoryError:
         (inmet_root / "2024").write_text("not a directory")
 
     with pytest.raises(expected_error):
-        list(extractor.inmet_dataframes())
+        extractor_factory(2024)
 
 
 def test_batch_reads_on_demand_when_skipping_invalid_file(
-    extractor, write_inmet, batch_log,
+    extractor_factory, write_inmet, batch_log,
 ):
     first = write_inmet(station="A001")
     empty = write_inmet(station="A002")
     empty.write_bytes(b"")
     last = write_inmet(station="A003")
+    extractor = extractor_factory(2024)
 
     with patch.object(extractor, "inmet_dataframe", wraps=extractor.inmet_dataframe) as read:
         iterator = extractor.inmet_dataframes()
