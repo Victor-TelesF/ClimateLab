@@ -1,35 +1,156 @@
-# Registro da preparação — 15/11/2026
+# Preparação local
 
-## Ambiente e verificações realizadas
+Este guia descreve o ambiente, a aquisição do pacote INMET de 2024 e as
+verificações necessárias para iniciar a leitura. Os dados permanecem locais e
+não acompanham o clone do repositório.
 
-- Sistema: Ubuntu 26.04 LTS no WSL2, x86_64.
-- Python: 3.14.4; `uv`: 0.12.3. Ambiente criado em `.venv`.
-- A pasta continha somente o README inicial; nenhum arquivo ou ambiente do
-  CineMetrics foi encontrado nesta pasta.
-- Caderno anexado copiado integralmente para `docs/desafios.md`.
-- Dependências instaladas e fixadas em `uv.lock`; `uv lock --check` e
-  `uv pip check` passaram.
-- Imports confirmados no Python de `.venv`: pandas 3.1.1, NumPy 2.5.4,
-  Matplotlib 3.11.2, Seaborn 0.13.2, JupyterLab 4.6.6, ipykernel 7.4.0,
-  PyArrow 26.0.1 e httpx 0.28.1. O pacote local também foi importado.
-- Kernel **ClimateLab (.venv)** registrado somente dentro de `.venv`, em
-  `.venv/share/jupyter/kernels/climatelab/`, com executável desta instalação.
-- `notebooks/01-inventario.ipynb` validado com `nbformat` e executado por inteiro
-  com `nbclient`, a partir da raiz, sem erros e sem tabelas ou gráficos gerados.
-- Configuração do VS Code aponta para `.venv/bin/python` e usa a raiz como
-  diretório dos notebooks. Extensões oficiais Python e Jupyter já instaladas.
-  A seleção do kernel e a aparência na interface do VS Code não foram
-  verificadas; siga os passos do README para selecionar o ambiente e abrir o notebook.
-- Dados, ambiente, caches e resultados abrangidos pelo `.gitignore`.
-- Nenhum commit, publicação ou solução dos desafios foi produzido.
+## Requisitos do ambiente
 
-## Histórico do download automatizado
+O projeto requer Python `>=3.14,<3.15`, com `3.14.4` em `.python-version`,
+e [uv](https://docs.astral.sh/uv/). Na raiz do repositório:
 
-O portal oficial foi consultado e o link **ANO 2024 (AUTOMÁTICA)** aponta para
-<https://portal.inmet.gov.br/uploads/dadoshistoricos/2024.zip>.
+```bash
+uv sync --locked
+uv run --locked python --version
+uv run --locked jupyter lab
+```
 
-O acesso pelo terminal e o download foram tentados no ambiente restrito e
-repetidos fora dele. Falharam com conexão encerrada pelo destino:
+O `uv` instala o pacote local e as dependências de `uv.lock`, incluindo pytest
+no grupo de desenvolvimento. A configuração do VS Code aponta para
+`.venv/bin/python` e usa a raiz como diretório de trabalho dos notebooks.
+O mesmo ambiente deve ser selecionado como kernel.
+
+Para registrar um kernel com nome próprio dentro de `.venv`, opcionalmente:
+
+```bash
+uv run --locked python -m ipykernel install --sys-prefix --name climatelab --display-name "ClimateLab (.venv)"
+```
+
+O ambiente de referência usa Ubuntu 26.04 LTS no WSL2, x86_64, Python 3.14.4
+e uv 0.12.3. A seleção do kernel e a apresentação dos notebooks na interface
+do VS Code não foram verificadas nesta revisão.
+
+## Aquisição dos arquivos
+
+### Obter os CSVs manualmente
+
+1. No [portal oficial do INMET](https://portal.inmet.gov.br/dadoshistoricos),
+   selecione **ANO 2024 (AUTOMÁTICA)**. O
+   [ZIP de 2024](https://portal.inmet.gov.br/uploads/dadoshistoricos/2024.zip)
+   também tem um endereço direto.
+2. Salve o pacote em `data/raw/inmet/2024.zip`. Se o download ocorrer no
+   Windows, copie-o para essa pasta no WSL.
+3. Na raiz do projeto, confira o ZIP e extraia os arquivos em um destino novo:
+
+   ```bash
+   uv run --locked python -m zipfile -t data/raw/inmet/2024.zip &&
+     mkdir data/raw/inmet/2024 &&
+     uv run --locked python -m zipfile -e data/raw/inmet/2024.zip data/raw/inmet/2024
+   ```
+
+4. Preserve o ZIP e os CSVs sem alterações, com seus nomes originais. Registre
+   origem, data, método, tamanho, hash e verificações da aquisição em
+   `data/raw/inmet/aquisicao-2024.json`. Esse registro é local e manual.
+
+Uma cópia já organizada não exige novo download ou extração. A extração não
+deve sobrescrever arquivos existentes; transformações devem usar outro destino.
+
+## Estrutura esperada dos dados
+
+```text
+data/
+├── raw/
+│   ├── inmet/
+│   │   ├── 2024.zip
+│   │   ├── aquisicao-2024.json
+│   │   └── 2024/
+│   │       └── INMET_..._A001_..._31-12-2024.CSV
+│   └── open_meteo/             # Reservado para respostas brutas
+└── processed/                 # Reservado para dados preparados
+```
+
+O nome abreviado acima ilustra a convenção; os nomes completos devem ser
+mantidos. Resultados analíticos terão destino em `outputs/figures/` e
+`outputs/tables/`. Esses diretórios, `data/processed/` e `data/raw/open_meteo/`
+contêm apenas `.gitkeep` no estado atual. O `.gitignore` exclui dados, resultados,
+ambiente e caches do versionamento.
+
+## Preparação para processamento
+
+`DataPaths.csv_paths(year)` lista os CSVs diretamente na pasta do ano.
+`ExtractInmet(year)` usa essa lista para identificar arquivos e ler metadados
+e medições separadamente. Os caminhos padrão são relativos à raiz do projeto.
+Uma pasta ausente gera `FileNotFoundError`, e um arquivo no lugar da pasta gera
+`NotADirectoryError`.
+
+O formato atual de leitura considera oito linhas de metadados, cabeçalho na
+nona linha, Latin-1, separador `;` e vírgula decimal nas medições. Esses
+parâmetros devem ser conferidos antes de incorporar arquivos de outro formato.
+As unidades e convenções temporais estão em [fontes.md](fontes.md).
+
+O exemplo do README lê um arquivo usando a interface atual. O notebook de
+inventário exibe uma prévia de A620, e o de teste contém uma tentativa de
+navegação entre arquivos via `input()`.
+[Exemplo de leitura](../README.md#execução-local),
+[inventário](../notebooks/01-inventario.ipynb) e [teste](../notebooks/teste.ipynb).
+
+## Verificações de integridade e execução
+
+Para conferir o ambiente e executar a suíte:
+
+```bash
+uv lock --check
+uv pip check
+uv run --locked pytest
+```
+
+As verificações locais de 19/11/2026 confirmaram os seguintes resultados.
+
+- Compatibilidade do lockfile com o projeto e das dependências instaladas.
+- ZIP com 102.772.199 bytes e SHA-256 igual ao registro da aquisição:
+
+  ```text
+  0a7f89de57427f79b6f82943b2f7f2e932202d9253e34bf25629ed088d108ae7
+  ```
+
+- Correspondência de nomes e tamanhos dos 565 CSVs com o diretório do ZIP.
+  O CSV A001 de Brasília também coincide, byte a byte, com sua entrada no pacote.
+- Execução do exemplo de leitura com A001: metadados com formato `(8, 2)` e
+  medições com `(8784, 20)`. Essa contagem não comprova cobertura válida por variável.
+- A leitura em lote retornou 565 tabelas e deixou `registry_erros` vazio
+  nesse acervo local.
+- Validade estrutural dos dois notebooks pelo `nbformat`. A execução de
+  `01-inventario.ipynb` com `nbclient` exibiu duas tabelas de A620.
+  Em `teste.ipynb`, entradas simuladas `0` e `1` encerraram a célula após
+  o primeiro arquivo.
+- A suíte executou 60 cenários, com falhas na preservação de texto nos
+  metadados, na validação e no diagnóstico do lote.
+  [Resultado detalhado da suíte](../tests/README.md#estado-da-suíte)
+
+O checksum identifica a cópia adquirida. A comparação com o ZIP confere os
+arquivos extraídos. A leitura em lote comprova que o pandas carregou as tabelas
+neste ambiente. A auditoria da estrutura e da qualidade meteorológica das
+565 séries continua pendente.
+
+## Limitações conhecidas
+
+O extrator ainda não valida integralmente nomes, metadados, colunas, datas,
+horários ou medições. Campos textuais como `NA` e `NULL` podem virar ausências,
+e a coluna vazia final permanece na tabela. Não há normalização temporal,
+tratamento explícito de sentinelas, cálculo de cobertura ou exportação de dados
+processados. Essas etapas estão no [planejamento](desafios.md).
+
+O cliente Open-Meteo e a verificação da conectividade do endpoint continuam
+pendentes. Os testes unitários usam CSVs artificiais. A execução dos notebooks
+foi feita em kernel local, sem conferência da interface do VS Code.
+
+## Histórico técnico
+
+Na preparação de 15/11/2026, a versão inicial de `01-inventario.ipynb` foi
+validada com `nbformat` e executada com `nbclient` a partir da raiz.
+
+Em 15/11/2026, o download do ZIP pelo terminal falhou com encerramento da conexão
+pelo destino, tanto no ambiente restrito quanto fora dele:
 
 ```text
 ConnectionResetError: [Errno 104] Connection reset by peer
@@ -38,69 +159,12 @@ http_code=000
 size_download=0
 ```
 
-O navegador de pesquisa identificou o recurso como `application/zip`, mas não
-oferece suporte à entrega desse binário ao workspace. Na preparação inicial,
-nenhum ZIP foi salvo e nenhum CSV foi extraído ou lido. A aquisição manual
-posterior, descrita abaixo, resolveu essa pendência.
+O pacote foi adquirido manualmente e organizado no mesmo dia. O registro local
+`data/raw/inmet/aquisicao-2024.json` preserva as tentativas e as verificações:
+nomes e tamanhos de todos os CSVs, comparação integral de A001 com o ZIP e
+preservação de dispositivo, inode, tamanho e data de modificação na movimentação.
 
-## Dados locais organizados
-
-Em **15/11/2026**, o estudante informou ter baixado e extraído o pacote. Foram
-encontrados `2024.zip` e 565 CSVs na raiz e movidos para:
-
-- `data/raw/inmet/2024.zip`: ZIP original, com 102.772.199 bytes.
-- `data/raw/inmet/2024/`: 565 CSVs com seus nomes originais.
-- `data/raw/inmet/aquisicao-2024.json`: registro atualizado da aquisição e das
-  verificações, preservando os erros anteriores como histórico.
-
-Todos os nomes e tamanhos dos CSVs coincidem com o diretório do ZIP, sem arquivos
-ausentes ou adicionais. A movimentação preservou dispositivo, inode, tamanho e
-data de modificação de cada arquivo. O SHA-256 do ZIP permaneceu igual:
-
-```text
-0a7f89de57427f79b6f82943b2f7f2e932202d9253e34bf25629ed088d108ae7
-```
-
-Foi feita somente uma leitura técnica das primeiras dez linhas, em bytes, de:
-
-```text
-data/raw/inmet/2024/INMET_CO_DF_A001_BRASILIA_01-01-2024_A_31-12-2024.CSV
-```
-
-Esse arquivo também foi comparado integralmente com sua entrada no ZIP e é
-idêntico. Não foram diagnosticados cabeçalhos, codificação, colunas ou cobertura,
-nem feitas limpeza ou análises. A escolha da estação para estudo continua sendo
-do estudante. ZIP, CSVs e registro local de aquisição ficam ignorados pelo Git.
-
-**API:** a documentação e as condições foram consultadas, mas a conectividade
-do endpoint de dados não foi testada. A consulta opcional foi omitida porque
-não havia CSV local na preparação inicial. A organização posterior não executou
-consultas à API.
-
-## Obter os CSVs manualmente
-
-Referência para uma nova cópia: o pacote atual já está organizado e verificado;
-não é necessário repetir estes passos para começar o desafio 01.
-
-1. Abra o [portal oficial](https://portal.inmet.gov.br/dadoshistoricos) no seu
-   navegador e clique em **ANO 2024 (AUTOMÁTICA)**. O
-   [link direto](https://portal.inmet.gov.br/uploads/dadoshistoricos/2024.zip)
-   foi confirmado nessa página.
-2. Salve somente esse pacote como `data/raw/inmet/2024.zip`. Se baixar no
-   Windows, copie o ZIP para essa pasta do projeto no WSL.
-3. Na raiz do projeto, com a `.venv` ativada, confira e extraia:
-
-   ```bash
-   python -m zipfile -t data/raw/inmet/2024.zip
-   python -m zipfile -e data/raw/inmet/2024.zip data/raw/inmet/2024
-   ```
-
-4. Preserve o ZIP e os arquivos extraídos sem modificações. Em uma nova aquisição,
-   atualize a data e as verificações em `data/raw/inmet/aquisicao-2024.json`.
-5. No explorador do VS Code, procure um `.CSV` ou `.csv` dentro de
-   `data/raw/inmet/2024/`. Abra apenas um arquivo para conferir a extração.
-6. Abra `notebooks/01-inventario.ipynb`, selecione **ClimateLab (.venv)** e
-   comece o desafio 01 com esse arquivo. Sua escolha de estação, o inventário e
-   o diagnóstico do conteúdo continuam sendo parte do exercício.
-
-Não repita a extração sobre arquivos de estudo já modificados.
+Na aquisição inicial, a inspeção limitou-se às dez primeiras linhas de A001 em
+bytes. O campo `csv_read_scope` do JSON descreve esse momento, não as leituras
+posteriores pelo extrator e pelos notebooks. A verificação atual da cópia está
+na seção de integridade acima.
