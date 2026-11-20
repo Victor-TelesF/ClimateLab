@@ -19,7 +19,6 @@ class DataPaths:
                 f"Diretório inválido ou inexistente: {folder}"
                 )
   
-        
         return sorted(
             path
             for path in folder.iterdir()

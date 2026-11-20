@@ -18,3 +18,12 @@ class EmptyInmetFileError(InmetError):
 
 class InvalidInmetCsvStructureError(InmetError):
     pass
+
+class InvalidInmetDateError(InmetError):
+    pass
+
+class InvalidInmetDateRangeError(InmetError):
+    pass
+
+class NoInmetFilesFoundError(InmetError):
+    pass
