@@ -8,8 +8,18 @@ class DataPaths:
     processed: Path = Path("data/processed")
 
     def csv_paths(self, year: int) -> list[Path]:
+        
         folder = self.inmet / str(year)
 
+        if not folder.exists():
+            raise FileNotFoundError("Caminho inválido ou inexistente: {folder}")
+    
+        elif not folder.is_dir():
+            raise NotADirectoryError(
+                f"Diretório inválido ou inexistente: {folder}"
+                )
+  
+        
         return sorted(
             path
             for path in folder.iterdir()
